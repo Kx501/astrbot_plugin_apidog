@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from pathlib import Path
 from typing import Any
 
@@ -18,8 +17,7 @@ from . import permission
 from . import rate_limit as rate_limit_mod
 from . import request as req_mod
 from . import response
-
-logger = logging.getLogger("apidog.core")
+from .log_helper import logger
 
 __all__ = ["run", "CallContext", "CallResult"]
 

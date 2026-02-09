@@ -3,15 +3,20 @@
 
 from __future__ import annotations
 
+import threading
 import tempfile
 from pathlib import Path
 from typing import Any, List
 
+import uvicorn
+from astrbot.api import logger as _ab_logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, StarTools, register
 from astrbot.api.message_components import Image, Plain, Record, Video
 
+from .api import create_app
 from .core import CallContext, CallResult, run
+from .core.log_helper import set_apidog_logger
 from .runtime import start_scheduler
 
 
@@ -24,8 +29,14 @@ from .runtime import start_scheduler
 class ApiDogStar(Star):
     def __init__(self, context: Context) -> None:
         super().__init__(context)
+        set_apidog_logger(_ab_logger)
         self._data_dir = Path(StarTools.get_data_dir(None))
         start_scheduler(self._data_dir, send_message=self._send_scheduled_result)
+        api_app = create_app(self._data_dir)
+        threading.Thread(
+            target=lambda: uvicorn.run(api_app, host="0.0.0.0", port=5787),
+            daemon=True,
+        ).start()
 
     def _result_to_chain(self, result: CallResult) -> List[Any]:
         """Build AstrBot message chain (list of components) from CallResult for proactive send."""

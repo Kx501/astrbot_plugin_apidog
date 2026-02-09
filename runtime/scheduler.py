@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from pathlib import Path
 from typing import Any, Awaitable, Callable
 
@@ -13,9 +12,8 @@ from apscheduler.triggers.cron import CronTrigger
 
 from ..core import run
 from ..core.loader import load_schedules
+from ..core.log_helper import logger
 from ..core.types import CallContext, CallResult
-
-logger = logging.getLogger("apidog.runtime.scheduler")
 
 _scheduler: AsyncIOScheduler | None = None
 _started: bool = False

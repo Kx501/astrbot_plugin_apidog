@@ -3,15 +3,13 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import httpx
 
 from .parse_args import resolve_placeholders
 from .auth import apply_auth
-
-logger = logging.getLogger("apidog.core.request")
+from .log_helper import logger
 
 MEDIA_PREFIXES = ("image/", "video/", "audio/")
 
