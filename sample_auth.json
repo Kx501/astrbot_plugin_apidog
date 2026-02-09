@@ -1,0 +1,6 @@
+{
+  "default": {
+    "type": "bearer",
+    "token": "your-token-here"
+  }
+}
