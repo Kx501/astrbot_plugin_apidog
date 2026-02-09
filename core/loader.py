@@ -45,8 +45,11 @@ def load_groups(data_dir: Path) -> dict[str, Any]:
     return {"user_groups": user_groups, "group_groups": group_groups}
 
 
+DEFAULT_RETRY_STATUSES: frozenset[int] = frozenset({500, 502, 503, 429})
+
+
 def load_config(data_dir: Path) -> dict[str, Any]:
-    """Load config.json for global defaults (timeout, retry). Missing file or keys use built-in defaults."""
+    """Load config.json for global defaults (timeout, retry, retry_statuses). Missing file or keys use built-in defaults."""
     path = data_dir / "config.json"
     raw = load_json(path, {})
     if not isinstance(raw, dict):
@@ -66,7 +69,17 @@ def load_config(data_dir: Path) -> dict[str, Any]:
                 "max_attempts": int(max_a),
                 "backoff_seconds": float(backoff) if isinstance(backoff, (int, float)) else 1.0,
             }
-    return {"timeout_seconds": timeout_seconds, "retry": retry}
+    raw_statuses = raw.get("retry_statuses")
+    if isinstance(raw_statuses, list):
+        retry_statuses = frozenset(
+            int(x) for x in raw_statuses
+            if isinstance(x, (int, float)) and 100 <= int(x) <= 599
+        )
+        if not retry_statuses:
+            retry_statuses = DEFAULT_RETRY_STATUSES
+    else:
+        retry_statuses = DEFAULT_RETRY_STATUSES
+    return {"timeout_seconds": timeout_seconds, "retry": retry, "retry_statuses": retry_statuses}
 
 
 def merge_client_options(global_config: dict[str, Any], api: dict) -> dict[str, Any]:
@@ -91,7 +104,8 @@ def merge_client_options(global_config: dict[str, Any], api: dict) -> dict[str, 
             retry = None
     else:
         retry = global_config.get("retry")
-    return {"timeout_seconds": timeout_seconds, "retry": retry}
+    retry_statuses = global_config.get("retry_statuses", DEFAULT_RETRY_STATUSES)
+    return {"timeout_seconds": timeout_seconds, "retry": retry, "retry_statuses": retry_statuses}
 
 
 def load_schedules(data_dir: Path) -> list[dict]:

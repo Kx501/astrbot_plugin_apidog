@@ -9,7 +9,7 @@
 ## 配置
 
 - 数据目录：由 AstrBot 官方 API 按插件目录名自动确定（如 `data/plugin_data/astrbot_plugin_apidog/`）。将 `sample_apis.json` 复制到该目录下为 `apis.json` 并按需编辑。
-- 可选：将 **sample_config.json** 复制为同目录下 **config.json**，配置全局默认超时与重试；不创建则使用内置默认（超时 30 秒、不重试）。
+- 可选：将 **sample_config.json** 复制为同目录下 **config.json**，配置全局默认超时、重试及可重试状态码；不创建则使用内置默认（超时 30 秒、不重试）。**retry_statuses**（数组）：仅对列表中的 HTTP 状态码按重试策略重试，默认 `[500, 502, 503, 429]`，可按需增加 408、504 等。
 - 可选：将 `sample_auth.json` 复制为同目录下 `auth.json` 配置认证；将 `sample_groups.json` 复制为 `groups.json` 配置用户组与群组（API 权限由组名引用，见下）。
 
 ## 用法

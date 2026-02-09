@@ -125,7 +125,8 @@ async def run(
     retry_cfg = client_opts.get("retry")
     max_attempts = retry_cfg.get("max_attempts", 0) if isinstance(retry_cfg, dict) else 0
     backoff_seconds = retry_cfg.get("backoff_seconds", 1.0) if isinstance(retry_cfg, dict) else 1.0
-    retryable_statuses = {500, 502, 503, 429}
+    retry_statuses_raw = client_opts.get("retry_statuses")
+    retryable_statuses = set(retry_statuses_raw) if isinstance(retry_statuses_raw, (set, frozenset)) else (set(retry_statuses_raw) if isinstance(retry_statuses_raw, list) else {500, 502, 503, 429})
 
     status_code, data, text, content_bytes, content_type = None, None, "", None, None
 
@@ -135,12 +136,13 @@ async def run(
                 api, url, method, headers, params, body, auth, timeout=timeout_seconds
             )
             if status_code in retryable_statuses and attempt < max_attempts:
+                logger.info("ApiDog retry api_key=%s attempt=%s reason=status_code status_code=%s", api_key, attempt + 1, status_code)
                 await asyncio.sleep(backoff_seconds)
                 continue
             break
         except httpx.TimeoutException:
-            last_timeout = True
             if attempt < max_attempts:
+                logger.info("ApiDog retry api_key=%s attempt=%s reason=timeout", api_key, attempt + 1)
                 await asyncio.sleep(backoff_seconds)
                 continue
             _log_call(api_key, context, False, error_type="timeout")
@@ -151,5 +153,7 @@ async def run(
             return CallResult(success=False, message="请求出错，请稍后重试。", result_type="text")
 
     result = response.parse_response(api, status_code, data, text, content_bytes, content_type)
+    if status_code is not None and status_code in retryable_statuses and not result.success:
+        logger.warning("ApiDog retries exhausted api_key=%s final_status_code=%s", api_key, status_code)
     _log_call(api_key, context, result.success, status_code=status_code)
     return result
