@@ -87,6 +87,11 @@ async def run(
         _log_call(api_key, context, False)
         return CallResult(success=False, message=err, result_type="text")
 
+    ok, err = rate_limit_mod.check_and_record_global(api, api_key)
+    if not ok:
+        _log_call(api_key, context, False, error_type="rate_limit")
+        return CallResult(success=False, message=err, result_type="text")
+        
     ok, err = rate_limit_mod.check_and_record(api, context.user_id, api_key)
     if not ok:
         _log_call(api_key, context, False, error_type="rate_limit")

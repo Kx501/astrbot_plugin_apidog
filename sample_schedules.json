@@ -1,0 +1,10 @@
+{
+  "schedules": [
+    {
+      "api_key": "天气",
+      "cron": "0 9 * * *",
+      "args": ["北京"],
+      "target_session": ""
+    }
+  ]
+}

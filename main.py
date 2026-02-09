@@ -5,15 +5,14 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, StarTools, register
-from astrbot.api.message_components import Image
-from astrbot.api.message_components import Video
-from astrbot.api.message_components import Record
+from astrbot.api.message_components import Image, Plain, Record, Video
 
 from .core import CallContext, CallResult, run
+from .runtime import start_scheduler
 
 
 @register(
@@ -25,8 +24,49 @@ from .core import CallContext, CallResult, run
 class ApiDogStar(Star):
     def __init__(self, context: Context) -> None:
         super().__init__(context)
-        self._data_dir = Path(StarTools.get_data_dir(None)) 
-        
+        self._data_dir = Path(StarTools.get_data_dir(None))
+        start_scheduler(self._data_dir, send_message=self._send_scheduled_result)
+
+    def _result_to_chain(self, result: CallResult) -> List[Any]:
+        """Build AstrBot message chain (list of components) from CallResult for proactive send."""
+        if result.result_type == "text":
+            return [Plain(result.message or "")]
+        if result.result_type == "image" and result.media_url:
+            return [Image.fromURL(url=result.media_url)]
+        if result.result_type == "video" and result.media_url:
+            return [Video.fromURL(url=result.media_url)]
+        if result.result_type == "audio" and result.media_url:
+            return [Record(url=result.media_url)]
+        if result.media_bytes and result.result_type in ("image", "video", "audio"):
+            suffix = ".jpg"
+            if result.media_content_type:
+                if "png" in result.media_content_type:
+                    suffix = ".png"
+                elif "gif" in result.media_content_type:
+                    suffix = ".gif"
+                elif "video" in result.media_content_type or result.result_type == "video":
+                    suffix = ".mp4"
+                elif "audio" in result.media_content_type or result.result_type == "audio":
+                    suffix = ".wav"
+            try:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as f:
+                    f.write(result.media_bytes)
+                    tmp_path = f.name
+                try:
+                    if result.result_type == "image":
+                        return [Image.fromFileSystem(path=tmp_path)]
+                    return [Plain(f"（媒体已收到，{result.result_type}）")]
+                finally:
+                    Path(tmp_path).unlink(missing_ok=True)
+            except Exception:
+                return [Plain("媒体已收到，发送暂不支持。")]
+        return [Plain(result.message or "")]
+
+    async def _send_scheduled_result(self, target_session: str, result: CallResult) -> None:
+        """Send scheduled task result to target session (AstrBot: unified_msg_origin)."""
+        chain = self._result_to_chain(result)
+        await self.context.send_message(target_session, chain)
+
     @filter.command("api")
     async def cmd_api(self, event: AstrMessageEvent) -> None:
         """Call a configured API by name. Usage: /api <api_key> [args...]"""

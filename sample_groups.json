@@ -1,7 +1,8 @@
 {
   "user_groups": {
     "vip": [],
-    "内测": []
+    "内测": [],
+    "system": ["scheduler"]
   },
   "group_groups": {
     "主群组": [],

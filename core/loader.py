@@ -45,6 +45,17 @@ def load_groups(data_dir: Path) -> dict[str, Any]:
     return {"user_groups": user_groups, "group_groups": group_groups}
 
 
+def load_schedules(data_dir: Path) -> list[dict]:
+    """Load schedules.json. Returns schedules array; missing file or non-list -> []."""
+    path = data_dir / "schedules.json"
+    raw = load_json(path, {})
+    if isinstance(raw, dict):
+        schedules = raw.get("schedules")
+        if isinstance(schedules, list):
+            return schedules
+    return []
+
+
 def enabled_apis(apis: list[dict]) -> list[dict]:
     """Return only APIs with enabled !== false."""
     return [a for a in apis if a.get("enabled", True) is not False]

@@ -4,7 +4,7 @@
 
 ## 安装
 
-将本插件放入 AstrBot 的 `data/plugins/` 下（如 `data/plugins/apidog/`），在管理面板中启用并安装依赖（httpx）。
+将本插件放入 AstrBot 的 `data/plugins/` 下（如 `data/plugins/apidog/`），在管理面板中启用并安装依赖（httpx、apscheduler）。
 
 ## 配置
 
@@ -31,6 +31,13 @@
 - **`help_text`**（或 `help`，可选）：详情页自定义说明。配置后，在 `/api help <接口名>` 中会优先展示该段文案，便于管理员在后台或 apis.json 中维护使用说明、示例等。
 - **`enabled`**（可选，默认 true）：为 false 时该接口禁用，不可调用且不出现在 `/api help` 中。
 - **`rate_limit`**（可选）：按 (user_id, api_key) 限流，与权限组无关。仅支持对象 `{"max": N, "window_seconds": S}`（如 `{"max": 10, "window_seconds": 60}` 表示 60 秒内最多 10 次）。仅单进程有效，多实例需自行扩展。
+- **`rate_limit_global`**（可选）：按 api_key 全局限流，该 API 所有调用（真人 + 计划任务）在窗口内总次数不超过 N。格式同上。先检查全局限流，再检查 per-user 限流。
+
+## 计划任务
+
+- 将 **sample_schedules.json** 复制为数据目录下的 **schedules.json**，配置定时调用的 API。每项包含 **api_key**、**cron**（5 位 cron 表达式，如 `0 9 * * *` 每天 9 点）、可选 **args**（位置参数数组）、**named**（命名参数对象）。
+- **主动推送结果**：每项可配置 **target_session**（字符串，取值格式由当前 bot 平台决定）。配置后，计划任务执行完会将结果主动发送到该会话。AstrBot 下该值为目标群/私聊的 `unified_msg_origin`（可从一次消息事件获得，格式如 `平台:类型:会话ID`）。
+- 计划任务使用固定身份 **scheduler**（`user_id="scheduler"`）。在 **groups.json** 的 **user_groups** 中增加 **system** 组、成员为 `["scheduler"]`；需要被定时调用的 API 在 `allowed_user_groups` 中包含 `"system"`（或不限制用户组）。计划任务与真人一样参与 per-user 限流和全局限流。
 
 ## 认证 (auth.json)
 
