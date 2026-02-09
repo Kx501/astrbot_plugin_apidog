@@ -16,7 +16,9 @@
       "require_admin": false,
       "allowed_user_groups": [],
       "allowed_group_groups": [],
-      "rate_limit": {"max": 10, "window_seconds": 60}
+      "rate_limit": {"max": 10, "window_seconds": 60},
+      "timeout_seconds": 10,
+      "retry": {"max_attempts": 2, "backoff_seconds": 1}
     },
     {
       "enabled": true,

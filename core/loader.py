@@ -45,6 +45,55 @@ def load_groups(data_dir: Path) -> dict[str, Any]:
     return {"user_groups": user_groups, "group_groups": group_groups}
 
 
+def load_config(data_dir: Path) -> dict[str, Any]:
+    """Load config.json for global defaults (timeout, retry). Missing file or keys use built-in defaults."""
+    path = data_dir / "config.json"
+    raw = load_json(path, {})
+    if not isinstance(raw, dict):
+        raw = {}
+    timeout = raw.get("timeout_seconds")
+    if isinstance(timeout, (int, float)) and timeout > 0:
+        timeout_seconds = float(timeout)
+    else:
+        timeout_seconds = 30.0
+    retry_raw = raw.get("retry")
+    retry: dict[str, Any] | None = None
+    if isinstance(retry_raw, dict):
+        max_a = retry_raw.get("max_attempts")
+        backoff = retry_raw.get("backoff_seconds", 1)
+        if isinstance(max_a, (int, float)) and max_a > 0:
+            retry = {
+                "max_attempts": int(max_a),
+                "backoff_seconds": float(backoff) if isinstance(backoff, (int, float)) else 1.0,
+            }
+    return {"timeout_seconds": timeout_seconds, "retry": retry}
+
+
+def merge_client_options(global_config: dict[str, Any], api: dict) -> dict[str, Any]:
+    """Merge global config with per-API overrides. Returns effective timeout_seconds and retry."""
+    timeout = api.get("timeout_seconds")
+    if isinstance(timeout, (int, float)) and timeout > 0:
+        timeout_seconds = float(timeout)
+    else:
+        timeout_seconds = global_config.get("timeout_seconds", 30.0)
+    retry_override = api.get("retry")
+    if retry_override is False or retry_override == 0:
+        retry = None
+    elif isinstance(retry_override, dict):
+        max_a = retry_override.get("max_attempts")
+        backoff = retry_override.get("backoff_seconds", 1)
+        if isinstance(max_a, (int, float)) and max_a > 0:
+            retry = {
+                "max_attempts": int(max_a),
+                "backoff_seconds": float(backoff) if isinstance(backoff, (int, float)) else 1.0,
+            }
+        else:
+            retry = None
+    else:
+        retry = global_config.get("retry")
+    return {"timeout_seconds": timeout_seconds, "retry": retry}
+
+
 def load_schedules(data_dir: Path) -> list[dict]:
     """Load schedules.json. Returns schedules array; missing file or non-list -> []."""
     path = data_dir / "schedules.json"

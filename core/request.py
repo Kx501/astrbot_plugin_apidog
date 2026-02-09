@@ -31,15 +31,17 @@ async def execute_request(
     params: dict[str, Any],
     body: Any,
     auth: dict[str, Any],
+    timeout: float | None = None,
 ) -> tuple[int, Any, str, bytes | None, str | None]:
     """
     Run httpx request. Returns (status_code, data, text, content_bytes, content_type).
     When status is 200 and Content-Type is image/video/audio, content_bytes and content_type are set.
     """
     apply_auth(api, auth, headers, params)
+    timeout_val = timeout if timeout is not None and timeout > 0 else 30.0
 
     try:
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=timeout_val, follow_redirects=True) as client:
             if method == "GET":
                 r = await client.get(url, params=params, headers=headers)
             elif method == "POST":

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from pathlib import Path
 from typing import Any
@@ -59,6 +60,7 @@ async def run(
     apis = loader.enabled_apis(apis)
     auth = loader.load_auth(data_dir)
     groups = loader.load_groups(data_dir)
+    global_config = loader.load_config(data_dir)
 
     args, named = parse_args(raw_args.strip())
     if not args:
@@ -118,17 +120,35 @@ async def run(
     else:
         body = body_raw
 
-    try:
-        status_code, data, text, content_bytes, content_type = await req_mod.execute_request(
-            api, url, method, headers, params, body, auth
-        )
-    except httpx.TimeoutException:
-        _log_call(api_key, context, False, error_type="timeout")
-        return CallResult(success=False, message="请求超时。", result_type="text")
-    except Exception:
-        logger.exception("ApiDog request error")
-        _log_call(api_key, context, False, error_type="error")
-        return CallResult(success=False, message="请求出错，请稍后重试。", result_type="text")
+    client_opts = loader.merge_client_options(global_config, api)
+    timeout_seconds = client_opts.get("timeout_seconds", 30.0)
+    retry_cfg = client_opts.get("retry")
+    max_attempts = retry_cfg.get("max_attempts", 0) if isinstance(retry_cfg, dict) else 0
+    backoff_seconds = retry_cfg.get("backoff_seconds", 1.0) if isinstance(retry_cfg, dict) else 1.0
+    retryable_statuses = {500, 502, 503, 429}
+
+    status_code, data, text, content_bytes, content_type = None, None, "", None, None
+
+    for attempt in range(1 + max_attempts):
+        try:
+            status_code, data, text, content_bytes, content_type = await req_mod.execute_request(
+                api, url, method, headers, params, body, auth, timeout=timeout_seconds
+            )
+            if status_code in retryable_statuses and attempt < max_attempts:
+                await asyncio.sleep(backoff_seconds)
+                continue
+            break
+        except httpx.TimeoutException:
+            last_timeout = True
+            if attempt < max_attempts:
+                await asyncio.sleep(backoff_seconds)
+                continue
+            _log_call(api_key, context, False, error_type="timeout")
+            return CallResult(success=False, message="请求超时。", result_type="text")
+        except Exception:
+            logger.exception("ApiDog request error")
+            _log_call(api_key, context, False, error_type="error")
+            return CallResult(success=False, message="请求出错，请稍后重试。", result_type="text")
 
     result = response.parse_response(api, status_code, data, text, content_bytes, content_type)
     _log_call(api_key, context, result.success, status_code=status_code)

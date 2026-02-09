@@ -9,6 +9,7 @@
 ## 配置
 
 - 数据目录：由 AstrBot 官方 API 按插件目录名自动确定（如 `data/plugin_data/astrbot_plugin_apidog/`）。将 `sample_apis.json` 复制到该目录下为 `apis.json` 并按需编辑。
+- 可选：将 **sample_config.json** 复制为同目录下 **config.json**，配置全局默认超时与重试；不创建则使用内置默认（超时 30 秒、不重试）。
 - 可选：将 `sample_auth.json` 复制为同目录下 `auth.json` 配置认证；将 `sample_groups.json` 复制为 `groups.json` 配置用户组与群组（API 权限由组名引用，见下）。
 
 ## 用法
@@ -32,6 +33,8 @@
 - **`enabled`**（可选，默认 true）：为 false 时该接口禁用，不可调用且不出现在 `/api help` 中。
 - **`rate_limit`**（可选）：按 (user_id, api_key) 限流，与权限组无关。仅支持对象 `{"max": N, "window_seconds": S}`（如 `{"max": 10, "window_seconds": 60}` 表示 60 秒内最多 10 次）。仅单进程有效，多实例需自行扩展。
 - **`rate_limit_global`**（可选）：按 api_key 全局限流，该 API 所有调用（真人 + 计划任务）在窗口内总次数不超过 N。格式同上。先检查全局限流，再检查 per-user 限流。
+- **`timeout_seconds`**（可选）：该 API 请求超时（秒），不配则使用 config.json 中的全局默认（或内置 30 秒）。
+- **`retry`**（可选）：重试策略。`false` 或 `0` 表示不重试；对象 `{ "max_attempts": N, "backoff_seconds": S }` 表示最多重试 N 次、间隔 S 秒。不配则使用 config.json 中的全局默认。仅对超时、5xx、429 重试。
 
 ## 计划任务
 
@@ -48,3 +51,8 @@
 ## 迁移到其他平台
 
 核心逻辑在 `core/` 包内（仅依赖 httpx，内含 `parse_args` 等），无任何 bot 依赖。迁移时保留整个 `core/` 目录及数据目录结构，按目标平台要求新建或替换入口文件（如 `main.py`），在入口中：从平台事件解析出用户输入与 `user_id` / `group_id` / `is_admin`，构造 `CallContext`，调用 `core.run(data_dir, raw_args, context, extra_config)`，再根据返回的 `CallResult`（`success`、`result_type`、`message`、`media_url` 或 `media_bytes`+`media_content_type`）调用该平台的发文本/图/视频/音频 API。
+
+## TODO
+
+- 配置校验 / 热重载
+- 结果缓存
