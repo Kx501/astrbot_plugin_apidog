@@ -152,8 +152,11 @@ async def run(
             _log_call(api_key, context, False, error_type="error")
             return CallResult(success=False, message="请求出错，请稍后重试。", result_type="text")
 
+    if status_code is None:
+        _log_call(api_key, context, False, error_type="error")
+        return CallResult(success=False, message="请求出错，请稍后重试。", result_type="text")
     result = response.parse_response(api, status_code, data, text, content_bytes, content_type)
-    if status_code is not None and status_code in retryable_statuses and not result.success:
+    if status_code in retryable_statuses and not result.success:
         logger.warning("ApiDog retries exhausted api_key=%s final_status_code=%s", api_key, status_code)
     _log_call(api_key, context, result.success, status_code=status_code)
     return result

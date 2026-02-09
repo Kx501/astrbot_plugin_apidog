@@ -71,12 +71,15 @@ def load_config(data_dir: Path) -> dict[str, Any]:
             }
     raw_statuses = raw.get("retry_statuses")
     if isinstance(raw_statuses, list):
-        retry_statuses = frozenset(
-            int(x) for x in raw_statuses
-            if isinstance(x, (int, float)) and 100 <= int(x) <= 599
-        )
-        if not retry_statuses:
-            retry_statuses = DEFAULT_RETRY_STATUSES
+        codes = []
+        for x in raw_statuses:
+            if isinstance(x, (int, float)) and 100 <= int(x) <= 599:
+                codes.append(int(x))
+            elif isinstance(x, str) and x.strip().isdigit():
+                v = int(x.strip())
+                if 100 <= v <= 599:
+                    codes.append(v)
+        retry_statuses = frozenset(codes) if codes else DEFAULT_RETRY_STATUSES
     else:
         retry_statuses = DEFAULT_RETRY_STATUSES
     return {"timeout_seconds": timeout_seconds, "retry": retry, "retry_statuses": retry_statuses}
