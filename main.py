@@ -25,7 +25,7 @@ from .runtime import start_scheduler
     "ApiDog",
     "可配置 API 与指令绑定，通过指令调用 API。用法: /api <接口名> [参数...]",
     "0.1.0",
-    "",
+    "https://github.com/Kx501/astrbot_plugin_apidog",
 )
 class ApiDogStar(Star):
     def __init__(self, context: Context) -> None:
@@ -93,7 +93,7 @@ class ApiDogStar(Star):
 
     @filter.command("api")
     async def cmd_api(self, event: AstrMessageEvent) -> None:
-        """Call a configured API by name. Usage: /api <api_key> [args...]"""
+        """通过接口名调用配置的 API。用法: /api <接口名> [参数...]，例如 /api 天气 北京"""
         raw = event.message_str.strip()
         for prefix in ("/api ", "/api\t", "api ", "api\t"):
             if raw.startswith(prefix):
