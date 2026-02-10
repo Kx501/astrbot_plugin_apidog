@@ -24,6 +24,7 @@
 - **基础**：`id` / `command`、`method`、`url`、`headers`、`params`、`body`
 - **占位符**：`{{args.0}}`、`{{named.xxx}}`、`{{named.xxx|默认值}}`、`{{config.xxx}}`
 - **响应**：`response_type`（text / image / video / audio）、`response_path`（JSON 取结果路径）、`response_media_from`（url 或 body，body 表示接口直接返回二进制媒体）
+- **认证**：`auth` 或 `auth_ref`（填 auth.json 中某条认证的键名，如 `default`）
 - **权限**：`allowed_user_groups`、`allowed_group_groups`（组在 groups.json 中定义）
 - **说明**：`description`（列表用）、`help_text` / `help`（详情页自定义）
 - **开关**：`enabled`（默认 true）
@@ -32,13 +33,15 @@
 
 ## 计划任务
 
-将 `sample_schedules.json` 复制为数据目录下 `schedules.json`。每项含 **api_key**、**cron**（5 位 cron，如 `0 9 * * *`）、可选 **args** / **named**。可配置 **target_session** 主动推送结果（AstrBot 下为 `unified_msg_origin`）。计划任务以 `user_id="scheduler"` 执行，需在 groups.json 的 user_groups 中建 system 组并加入 `scheduler`，API 的 `allowed_user_groups` 含 `"system"` 或不限制用户组。
+将 `sample_schedules.json` 复制为数据目录下 `schedules.json`。每项含 **api_key**（填 API 的 **id**）、**cron**（5 位 cron，如 `0 9 * * *`）、可选 **args** / **named**、**enabled**（默认 true，为 false 时该条不执行）。可配置 **target_session** 主动推送结果（AstrBot 下为 `unified_msg_origin`）。计划任务以 `user_id="scheduler"` 执行，需在 groups.json 的 user_groups 中建 system 组并加入 `scheduler`，API 的 `allowed_user_groups` 含 `"system"` 或不限制用户组。
 
 ## 认证 (auth.json)
 
 - **bearer**：`type: bearer`, `token: "..."`
 - **api_key**：`type: api_key`, `header: "X-API-Key"`, `value: "..."` 或 `in: query`
 - **basic**：`type: basic`, `username`, `password`
+
+在接口配置中通过 **auth** 或 **auth_ref** 填写上述某条认证的键名（如 `default`），该接口请求时会自动带上对应认证。
 
 ## 配置管理前端
 

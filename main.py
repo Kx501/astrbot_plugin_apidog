@@ -50,16 +50,16 @@ class ApiDogStar(Star):
             if thread is not None and thread.is_alive():
                 thread.join(timeout=3.0)
 
-    def _result_to_chain(self, result: CallResult) -> List[Any]:
-        """Build AstrBot message chain (list of components) from CallResult for proactive send."""
+    def _result_to_chain(self, result: CallResult) -> tuple[List[Any], List[str]]:
+        """Build AstrBot message chain from CallResult; second return is list of temp file paths to delete after send."""
         if result.result_type == "text":
-            return [Plain(result.message or "")]
+            return [Plain(result.message or "")], []
         if result.result_type == "image" and result.media_url:
-            return [Image.fromURL(url=result.media_url)]
+            return [Image.fromURL(url=result.media_url)], []
         if result.result_type == "video" and result.media_url:
-            return [Video.fromURL(url=result.media_url)]
+            return [Video.fromURL(url=result.media_url)], []
         if result.result_type == "audio" and result.media_url:
-            return [Record(url=result.media_url)]
+            return [Record(url=result.media_url)], []
         if result.media_bytes and result.result_type in ("image", "video", "audio"):
             suffix = ".jpg"
             if result.media_content_type:
@@ -75,21 +75,22 @@ class ApiDogStar(Star):
                 with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as f:
                     f.write(result.media_bytes)
                     tmp_path = f.name
-                try:
-                    if result.result_type == "image":
-                        return [Image.fromFileSystem(path=tmp_path)]
-                    return [Plain(f"（媒体已收到，{result.result_type}）")]
-                finally:
-                    Path(tmp_path).unlink(missing_ok=True)
+                if result.result_type == "image":
+                    return [Image.fromFileSystem(path=tmp_path)], [tmp_path]
+                return [Plain(f"（媒体已收到，{result.result_type}）")], [tmp_path]
             except Exception:
-                return [Plain("媒体已收到，发送暂不支持。")]
-        return [Plain(result.message or "")]
+                return [Plain("媒体已收到，发送暂不支持。")], []
+        return [Plain(result.message or "")], []
 
     async def _send_scheduled_result(self, target_session: str, result: CallResult) -> None:
         """Send scheduled task result to target session (AstrBot: unified_msg_origin)."""
-        components = self._result_to_chain(result)
+        components, tmp_paths = self._result_to_chain(result)
         message_chain = MessageChain(chain=components)
-        await self.context.send_message(target_session, message_chain)
+        try:
+            await self.context.send_message(target_session, message_chain)
+        finally:
+            for p in tmp_paths:
+                Path(p).unlink(missing_ok=True)
 
     @filter.command("api")
     async def cmd_api(self, event: AstrMessageEvent) -> None:

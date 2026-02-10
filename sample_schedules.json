@@ -1,7 +1,8 @@
 {
   "schedules": [
     {
-      "api_key": "天气",
+      "api_key": "weather",
+      "enabled": true,
       "cron": "0 9 * * *",
       "args": ["北京"],
       "target_session": ""

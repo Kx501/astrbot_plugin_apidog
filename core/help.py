@@ -17,7 +17,7 @@ def build_help_message(apis: list[dict], target: str | None = None) -> str:
     if not target or not (target := target.strip()):
         return _build_list(apis)
 
-    api = loader.find_api(apis, target)
+    api = loader.find_api_by_id_or_command(apis, target)
     if not api:
         return f"未找到接口: {target}。"
     return _build_detail(api)

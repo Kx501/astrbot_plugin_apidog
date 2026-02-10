@@ -219,8 +219,17 @@ def enabled_apis(apis: list[dict]) -> list[dict]:
 
 
 def find_api(apis: list[dict], api_key: str) -> dict | None:
+    """Find API by id only (e.g. for schedules). For user invocation use find_api_by_id_or_command."""
     for api in apis:
-        if api.get("command") == api_key or api.get("id") == api_key:
+        if api.get("id") == api_key:
+            return api
+    return None
+
+
+def find_api_by_id_or_command(apis: list[dict], key_or_command: str) -> dict | None:
+    """Find API by id or command (for user /api <name> invocation)."""
+    for api in apis:
+        if api.get("id") == key_or_command or api.get("command") == key_or_command:
             return api
     return None
 

@@ -13,6 +13,7 @@
       "body": null,
       "response_type": "text",
       "response_path": "",
+      "auth": "default",
       "allowed_user_groups": [],
       "allowed_group_groups": [],
       "rate_limit": {"max": 10, "window_seconds": 60},

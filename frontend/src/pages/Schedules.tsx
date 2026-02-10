@@ -32,7 +32,7 @@ export default function Schedules() {
   };
   const remove = (index: number) => setList(list.filter((_, i) => i !== index));
   const add = () =>
-    setList([...list, { api_key: "", cron: "0 9 * * *", args: [], named: {}, target_session: "" }]);
+    setList([...list, { api_key: "", cron: "0 9 * * *", args: [], named: {}, target_session: "", enabled: true }]);
 
   if (loading) return <p>加载中…</p>;
   return (
@@ -48,7 +48,8 @@ export default function Schedules() {
       <table className="table">
         <thead>
           <tr>
-            <th>接口键 <span className="field-origin">(api_key)</span></th>
+            <th>启用 <span className="field-origin">(enabled)</span></th>
+            <th>接口 id <span className="field-origin">(api_key)</span></th>
             <th>cron 表达式 <span className="field-origin">(cron)</span></th>
             <th>目标会话 <span className="field-origin">(target_session)</span></th>
             <th>操作</th>
@@ -58,11 +59,21 @@ export default function Schedules() {
           {list.map((row, i) => (
             <tr key={i}>
               <td>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={row.enabled !== false}
+                    onChange={() => update(i, "enabled", row.enabled === false)}
+                  />
+                  <span className="toggle__track" aria-hidden="true" />
+                </label>
+              </td>
+              <td>
                 <input
                   className="table-input table-input--wide"
                   value={String(row.api_key ?? "")}
                   onChange={(e) => update(i, "api_key", e.target.value)}
-                  placeholder="接口 command 或 id"
+                  placeholder="接口 id"
                 />
               </td>
               <td>

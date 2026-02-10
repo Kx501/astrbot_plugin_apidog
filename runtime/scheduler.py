@@ -72,6 +72,8 @@ def _register_jobs(
     send_message: SendMessageFn | None,
 ) -> None:
     for i, item in enumerate(schedules):
+        if item.get("enabled") is False:
+            continue
         api_key = item.get("api_key")
         cron = item.get("cron")
         if not api_key or not cron:

@@ -73,7 +73,7 @@ async def run(
         _log_call(api_key, context, True)
         return CallResult(success=True, message=message, result_type="text")
 
-    api = loader.find_api(apis, api_key)
+    api = loader.find_api_by_id_or_command(apis, api_key)
     if not api:
         _log_call(api_key, context, False)
         return CallResult(

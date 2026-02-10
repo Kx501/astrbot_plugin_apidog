@@ -62,7 +62,7 @@ export default function Apis() {
     setJsonError(null);
     setOpenBasic(true);
     setOpenResponse(false);
-    setOpenRequest(false);
+    setOpenRequest(true);
     setOpenRateLimit(false);
     setOpenPermission(false);
   };
@@ -100,6 +100,7 @@ export default function Apis() {
       response_media_from: "url",
       description: "",
       help_text: "",
+      auth: undefined as string | undefined,
       allowed_user_groups: [] as string[],
       allowed_group_groups: [] as string[],
       timeout_seconds: undefined as number | undefined,
@@ -130,8 +131,10 @@ export default function Apis() {
   const rateLimit = (editRow.rate_limit as Record<string, number> | undefined) ?? {};
   const rateLimitGlobal = (editRow.rate_limit_global as Record<string, number> | undefined) ?? {};
   const retryCfg = editRow.retry as Record<string, number> | false | number | undefined;
-  const retryNo = retryCfg === false || retryCfg === 0;
   const retryObj = typeof retryCfg === "object" && retryCfg !== null ? retryCfg : {};
+  const retryMax: number | "" =
+    retryCfg === false || retryCfg === 0 ? 0 : (retryObj.max_attempts ?? "");
+  const retryBackoff = retryObj.backoff_seconds ?? "";
 
   const closeEdit = () => {
     setEditIndex(null);
@@ -243,8 +246,55 @@ export default function Apis() {
               </div>
             </div>
           </div>
+          <div className={`accordion-section ${openRequest ? "open" : ""}`}>
+            <div className="accordion-head" onClick={() => setOpenRequest(!openRequest)}>请求 (headers / params / body)</div>
+            <div className="accordion-body">
+              <div className="form-group">
+                <label>请求头 <span className="field-origin">(headers)</span> JSON</label>
+                <textarea
+                  className="json-edit-sm"
+                  value={safeJsonStringify(editRow.headers)}
+                  onChange={(e) => setJsonField("headers", e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label>查询参数 <span className="field-origin">(params)</span> JSON</label>
+                <textarea
+                  className="json-edit-sm"
+                  value={safeJsonStringify(editRow.params)}
+                  onChange={(e) => setJsonField("params", e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label>请求体 <span className="field-origin">(body)</span> JSON</label>
+                <textarea
+                  className="json-edit-sm"
+                  value={typeof editRow.body === "object" && editRow.body !== null
+                    ? JSON.stringify(editRow.body, null, 2)
+                    : editRow.body === null || editRow.body === undefined
+                      ? ""
+                      : String(editRow.body)}
+                  onChange={(e) => {
+                    const raw = e.target.value.trim();
+                    if (!raw) {
+                      setEditRow({ ...editRow, body: null });
+                      setJsonError(null);
+                      return;
+                    }
+                    const parsed = safeJsonParse(e.target.value);
+                    if (parsed === undefined) {
+                      setJsonError("body 不是合法 JSON，未应用");
+                      return;
+                    }
+                    setJsonError(null);
+                    setEditRow({ ...editRow, body: parsed });
+                  }}
+                />
+              </div>
+            </div>
+          </div>
           <div className={`accordion-section ${openRateLimit ? "open" : ""}`}>
-            <div className="accordion-head" onClick={() => setOpenRateLimit(!openRateLimit)}>限流与请求</div>
+            <div className="accordion-head" onClick={() => setOpenRateLimit(!openRateLimit)}>限流与重试</div>
             <div className="accordion-body">
               <div className="form-group">
                 <label>限流 <span className="field-origin">(rate_limit)</span> 窗口内最大次数</label>
@@ -319,57 +369,72 @@ export default function Apis() {
                 />
               </div>
               <div className="form-group">
-                <label>不重试 <span className="field-origin">(retry: false)</span></label>
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={retryNo}
-                    onChange={(e) =>
-                      setEditRow({ ...editRow, retry: e.target.checked ? false : (retryObj.max_attempts ? retryObj : undefined) })
+                <label>重试次数 <span className="field-origin">(retry.max_attempts)</span> 不填用全局，填 0 不重试</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={typeof retryMax === "number" ? retryMax : ""}
+                  onChange={(e) => {
+                    const v = e.target.value === "" ? undefined : Number(e.target.value);
+                    if (v === undefined && (String(retryBackoff) === "" || retryBackoff === undefined)) {
+                      setEditRow({ ...editRow, retry: undefined });
+                      return;
                     }
-                  />
-                  <span className="toggle__track" aria-hidden="true" />
-                </label>
+                    if (v === 0) {
+                      setEditRow({ ...editRow, retry: false });
+                      return;
+                    }
+                    if (v !== undefined && v > 0) {
+                      setEditRow({
+                        ...editRow,
+                        retry: { max_attempts: v, backoff_seconds: Number(retryBackoff) || 1 },
+                      });
+                    }
+                  }}
+                />
               </div>
-              {!retryNo && (
-                <>
-                  <div className="form-group">
-                    <label>重试次数 <span className="field-origin">(retry.max_attempts)</span></label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={retryObj.max_attempts ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value === "" ? undefined : Number(e.target.value);
-                        setEditRow({
-                          ...editRow,
-                          retry: v === undefined && !retryObj.backoff_seconds ? undefined : { ...retryObj, max_attempts: v },
-                        });
-                      }}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>重试间隔秒数 <span className="field-origin">(retry.backoff_seconds)</span></label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={retryObj.backoff_seconds ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value === "" ? undefined : Number(e.target.value);
-                        setEditRow({
-                          ...editRow,
-                          retry: v === undefined && retryObj.max_attempts === undefined ? undefined : { ...retryObj, backoff_seconds: v },
-                        });
-                      }}
-                    />
-                  </div>
-                </>
-              )}
+              <div className="form-group">
+                <label>重试间隔秒数 <span className="field-origin">(retry.backoff_seconds)</span></label>
+                <input
+                  type="number"
+                  min={0}
+                  value={typeof retryBackoff === "number" ? retryBackoff : ""}
+                  onChange={(e) => {
+                    const v = e.target.value === "" ? undefined : Number(e.target.value);
+                    const currentMax = (retryMax === undefined || String(retryMax) === "") ? undefined : Number(retryMax);
+                    if (v === undefined && currentMax === undefined) {
+                      setEditRow({ ...editRow, retry: undefined });
+                      return;
+                    }
+                    if (currentMax === 0) {
+                      setEditRow({ ...editRow, retry: false });
+                      return;
+                    }
+                    if (currentMax !== undefined && currentMax > 0) {
+                      setEditRow({
+                        ...editRow,
+                        retry: { max_attempts: currentMax, backoff_seconds: v ?? 1 },
+                      });
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
           <div className={`accordion-section ${openPermission ? "open" : ""}`}>
             <div className="accordion-head" onClick={() => setOpenPermission(!openPermission)}>权限</div>
             <div className="accordion-body">
+              <div className="form-group">
+                <label>认证 <span className="field-origin">(auth / auth_ref)</span> auth.json 中的键名</label>
+                <input
+                  value={String(editRow.auth ?? editRow.auth_ref ?? "")}
+                  onChange={(e) => {
+                    const v = e.target.value.trim() || undefined;
+                    setEditRow({ ...editRow, auth: v, auth_ref: v });
+                  }}
+                  placeholder="如 default"
+                />
+              </div>
               <div className="form-group">
                 <label>允许的用户组 <span className="field-origin">(allowed_user_groups)</span> 逗号分隔</label>
                 <input
@@ -384,53 +449,6 @@ export default function Apis() {
                   value={arrToStr(editRow.allowed_group_groups)}
                   onChange={(e) => setEditRow({ ...editRow, allowed_group_groups: strToArr(e.target.value) })}
                   placeholder="组名1, 组名2"
-                />
-              </div>
-            </div>
-          </div>
-          <div className={`accordion-section ${openRequest ? "open" : ""}`}>
-            <div className="accordion-head" onClick={() => setOpenRequest(!openRequest)}>请求 (headers / params / body)</div>
-            <div className="accordion-body">
-              <div className="form-group">
-                <label>请求头 <span className="field-origin">(headers)</span> JSON</label>
-                <textarea
-                  className="json-edit-sm"
-                  value={safeJsonStringify(editRow.headers)}
-                  onChange={(e) => setJsonField("headers", e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label>查询参数 <span className="field-origin">(params)</span> JSON</label>
-                <textarea
-                  className="json-edit-sm"
-                  value={safeJsonStringify(editRow.params)}
-                  onChange={(e) => setJsonField("params", e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label>请求体 <span className="field-origin">(body)</span> JSON</label>
-                <textarea
-                  className="json-edit-sm"
-                  value={typeof editRow.body === "object" && editRow.body !== null
-                    ? JSON.stringify(editRow.body, null, 2)
-                    : editRow.body === null || editRow.body === undefined
-                      ? ""
-                      : String(editRow.body)}
-                  onChange={(e) => {
-                    const raw = e.target.value.trim();
-                    if (!raw) {
-                      setEditRow({ ...editRow, body: null });
-                      setJsonError(null);
-                      return;
-                    }
-                    const parsed = safeJsonParse(e.target.value);
-                    if (parsed === undefined) {
-                      setJsonError("body 不是合法 JSON，未应用");
-                      return;
-                    }
-                    setJsonError(null);
-                    setEditRow({ ...editRow, body: parsed });
-                  }}
                 />
               </div>
             </div>
