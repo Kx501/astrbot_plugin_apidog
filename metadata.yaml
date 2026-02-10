@@ -2,5 +2,6 @@ name: astrbot_plugin_apidog
 display_name: ApiDog
 version: "1.0.0"
 author: "Kx501"
-description: 可配置 API 与指令绑定，通过指令调用 API。支持占位符、认证与权限。
+desc: 可配置 API 与指令绑定，通过指令调用 API。支持占位符、认证与权限。
 repo: "https://github.com/Kx501/astrbot_plugin_apidog"
+tags: ["api"]
