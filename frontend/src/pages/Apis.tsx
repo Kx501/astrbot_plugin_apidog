@@ -32,6 +32,8 @@ export default function Apis() {
   const [openBasic, setOpenBasic] = useState(true);
   const [openResponse, setOpenResponse] = useState(false);
   const [openRequest, setOpenRequest] = useState(false);
+  const [openRateLimit, setOpenRateLimit] = useState(false);
+  const [openPermission, setOpenPermission] = useState(false);
 
   useEffect(() => {
     getApis()
@@ -61,6 +63,8 @@ export default function Apis() {
     setOpenBasic(true);
     setOpenResponse(false);
     setOpenRequest(false);
+    setOpenRateLimit(false);
+    setOpenPermission(false);
   };
   const applyEdit = () => {
     if (editIndex === null) return;
@@ -95,6 +99,14 @@ export default function Apis() {
       response_path: "",
       response_media_from: "url",
       description: "",
+      help_text: "",
+      require_admin: false,
+      allowed_user_groups: [] as string[],
+      allowed_group_groups: [] as string[],
+      timeout_seconds: undefined as number | undefined,
+      retry: undefined as Record<string, unknown> | false | undefined,
+      rate_limit: undefined as Record<string, number> | undefined,
+      rate_limit_global: undefined as Record<string, number> | undefined,
     };
     setList([...list, newRow]);
     setEditIndex(list.length);
@@ -111,53 +123,39 @@ export default function Apis() {
     setEditRow({ ...editRow, [key]: parsed });
   };
 
-  if (loading) return <p>加载中…</p>;
-  return (
-    <div className="page">
-      <h2>接口列表 <span className="field-origin">(apis.json)</span></h2>
-      {error && <p className="error">{error}</p>}
-      <div className="button-row">
-        <button onClick={addNew}>新增接口</button>
-        <button onClick={handleSaveAll} disabled={saving}>
-          {saving ? "保存中…" : "保存全部"}
-        </button>
+  const arrToStr = (a: unknown): string =>
+    Array.isArray(a) ? a.map((x) => String(x)).join(", ") : "";
+  const strToArr = (s: string): string[] =>
+    s.split(",").map((x) => x.trim()).filter(Boolean);
+
+  const rateLimit = (editRow.rate_limit as Record<string, number> | undefined) ?? {};
+  const rateLimitGlobal = (editRow.rate_limit_global as Record<string, number> | undefined) ?? {};
+  const retryCfg = editRow.retry as Record<string, number> | false | number | undefined;
+  const retryNo = retryCfg === false || retryCfg === 0;
+  const retryObj = typeof retryCfg === "object" && retryCfg !== null ? retryCfg : {};
+
+  const closeEdit = () => {
+    setEditIndex(null);
+    setJsonError(null);
+  };
+
+  const renderEditForm = () => (
+    <>
+      <div className="modal-header">
+        <h3 id="apis-edit-title">编辑接口</h3>
+        <button type="button" className="modal-close" onClick={closeEdit} aria-label="关闭">×</button>
       </div>
-      <table className="table">
-        <thead>
-          <tr>
-            <th className="col-command">命令 <span className="field-origin">(command)</span></th>
-            <th className="col-name">名称 <span className="field-origin">(name)</span></th>
-            <th>启用 <span className="field-origin">(enabled)</span></th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((row, i) => (
-            <tr key={i}>
-              <td>{String(row.command ?? row.id)}</td>
-              <td>{String(row.name ?? "")}</td>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={row.enabled !== false}
-                  onChange={() => toggleEnabled(i)}
-                />
-              </td>
-              <td>
-                <button onClick={() => startEdit(i)}>编辑</button>
-                <button onClick={() => remove(i)} style={{ marginLeft: 4 }}>删除</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {editIndex !== null && (
-        <div className="modal">
-          <h3>编辑接口</h3>
-          {jsonError && <p className="error">{jsonError}</p>}
-          <div className={`accordion-section ${openBasic ? "open" : ""}`}>
+      {jsonError && <p className="error">{jsonError}</p>}
+      <div className={`accordion-section ${openBasic ? "open" : ""}`}>
             <div className="accordion-head" onClick={() => setOpenBasic(!openBasic)}>基本</div>
             <div className="accordion-body">
+              <div className="form-group">
+                <label>ID <span className="field-origin">(id)</span></label>
+                <input
+                  value={String(editRow.id ?? "")}
+                  onChange={(e) => setEditRow({ ...editRow, id: e.target.value })}
+                />
+              </div>
               <div className="form-group">
                 <label>命令 <span className="field-origin">(command)</span></label>
                 <input
@@ -186,6 +184,8 @@ export default function Apis() {
               <div className="form-group">
                 <label>URL <span className="field-origin">(url)</span></label>
                 <input
+                  className="input-url"
+                  type="url"
                   value={String(editRow.url ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, url: e.target.value })}
                 />
@@ -229,6 +229,158 @@ export default function Apis() {
                 <input
                   value={String(editRow.description ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, description: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>帮助文案 <span className="field-origin">(help_text)</span></label>
+                <textarea
+                  value={String(editRow.help_text ?? editRow.help ?? "")}
+                  onChange={(e) => setEditRow({ ...editRow, help_text: e.target.value })}
+                  rows={3}
+                  style={{ maxWidth: "100%" }}
+                />
+              </div>
+            </div>
+          </div>
+          <div className={`accordion-section ${openRateLimit ? "open" : ""}`}>
+            <div className="accordion-head" onClick={() => setOpenRateLimit(!openRateLimit)}>限流与请求</div>
+            <div className="accordion-body">
+              <div className="form-group">
+                <label>限流 <span className="field-origin">(rate_limit)</span> 窗口内最大次数</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={rateLimit.max ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value === "" ? undefined : Number(e.target.value);
+                    setEditRow({
+                      ...editRow,
+                      rate_limit: v === undefined && !rateLimit.window_seconds ? undefined : { ...rateLimit, max: v },
+                    });
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>限流窗口秒数</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={rateLimit.window_seconds ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value === "" ? undefined : Number(e.target.value);
+                    setEditRow({
+                      ...editRow,
+                      rate_limit: v === undefined && rateLimit.max === undefined ? undefined : { ...rateLimit, window_seconds: v },
+                    });
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>全局限流 <span className="field-origin">(rate_limit_global)</span> 最大次数</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={rateLimitGlobal.max ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value === "" ? undefined : Number(e.target.value);
+                    setEditRow({
+                      ...editRow,
+                      rate_limit_global: v === undefined && !rateLimitGlobal.window_seconds ? undefined : { ...rateLimitGlobal, max: v },
+                    });
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>全局限流窗口秒数</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={rateLimitGlobal.window_seconds ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value === "" ? undefined : Number(e.target.value);
+                    setEditRow({
+                      ...editRow,
+                      rate_limit_global: v === undefined && rateLimitGlobal.max === undefined ? undefined : { ...rateLimitGlobal, window_seconds: v },
+                    });
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>超时秒数 <span className="field-origin">(timeout_seconds)</span></label>
+                <input
+                  type="number"
+                  min={1}
+                  value={typeof editRow.timeout_seconds === "number" ? editRow.timeout_seconds : ""}
+                  onChange={(e) => {
+                    const v = e.target.value === "" ? undefined : Number(e.target.value);
+                    setEditRow({ ...editRow, timeout_seconds: v });
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>不重试 <span className="field-origin">(retry: false)</span></label>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={retryNo}
+                    onChange={(e) =>
+                      setEditRow({ ...editRow, retry: e.target.checked ? false : (retryObj.max_attempts ? retryObj : undefined) })
+                    }
+                  />
+                  <span className="toggle__track" aria-hidden="true" />
+                </label>
+              </div>
+              {!retryNo && (
+                <>
+                  <div className="form-group">
+                    <label>重试次数 <span className="field-origin">(retry.max_attempts)</span></label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={retryObj.max_attempts ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value === "" ? undefined : Number(e.target.value);
+                        setEditRow({
+                          ...editRow,
+                          retry: v === undefined && !retryObj.backoff_seconds ? undefined : { ...retryObj, max_attempts: v },
+                        });
+                      }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>重试间隔秒数 <span className="field-origin">(retry.backoff_seconds)</span></label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={retryObj.backoff_seconds ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value === "" ? undefined : Number(e.target.value);
+                        setEditRow({
+                          ...editRow,
+                          retry: v === undefined && retryObj.max_attempts === undefined ? undefined : { ...retryObj, backoff_seconds: v },
+                        });
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <div className={`accordion-section ${openPermission ? "open" : ""}`}>
+            <div className="accordion-head" onClick={() => setOpenPermission(!openPermission)}>权限</div>
+            <div className="accordion-body">
+              <div className="form-group">
+                <label>允许的用户组 <span className="field-origin">(allowed_user_groups)</span> 逗号分隔</label>
+                <input
+                  value={arrToStr(editRow.allowed_user_groups)}
+                  onChange={(e) => setEditRow({ ...editRow, allowed_user_groups: strToArr(e.target.value) })}
+                />
+              </div>
+              <div className="form-group">
+                <label>允许的群组组 <span className="field-origin">(allowed_group_groups)</span> 逗号分隔</label>
+                <input
+                  value={arrToStr(editRow.allowed_group_groups)}
+                  onChange={(e) => setEditRow({ ...editRow, allowed_group_groups: strToArr(e.target.value) })}
                 />
               </div>
             </div>
@@ -280,9 +432,73 @@ export default function Apis() {
               </div>
             </div>
           </div>
-          <div className="button-row">
-            <button onClick={applyEdit}>应用</button>
-            <button onClick={() => { setEditIndex(null); setJsonError(null); }}>取消</button>
+      <div className="button-row">
+        <button onClick={applyEdit}>应用</button>
+        <button onClick={closeEdit}>取消</button>
+      </div>
+    </>
+  );
+
+  if (loading) return <p>加载中…</p>;
+  return (
+    <div className="page">
+      <h2>接口列表 <span className="field-origin">(apis.json)</span></h2>
+      {error && <p className="error">{error}</p>}
+      <div className="button-row">
+        <button onClick={addNew}>新增接口</button>
+        <button onClick={handleSaveAll} disabled={saving}>
+          {saving ? "保存中…" : "保存全部"}
+        </button>
+      </div>
+      <table className="table">
+        <thead>
+          <tr>
+            <th className="col-command">命令 <span className="field-origin">(command)</span></th>
+            <th className="col-name">名称 <span className="field-origin">(name)</span></th>
+            <th>启用 <span className="field-origin">(enabled)</span></th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((row, i) => (
+            <tr key={i}>
+              <td>{String(row.command ?? row.id)}</td>
+              <td>{String(row.name ?? "")}</td>
+              <td>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={row.enabled !== false}
+                    onChange={() => toggleEnabled(i)}
+                  />
+                  <span className="toggle__track" aria-hidden="true" />
+                </label>
+              </td>
+              <td>
+                <button onClick={() => startEdit(i)}>编辑</button>
+                <button onClick={() => remove(i)} style={{ marginLeft: 4 }}>删除</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {editIndex !== null && (
+        <div
+          className="modal-backdrop"
+          onClick={closeEdit}
+          onKeyDown={(e) => e.key === "Escape" && closeEdit()}
+          role="button"
+          tabIndex={0}
+          aria-label="关闭"
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="apis-edit-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {renderEditForm()}
           </div>
         </div>
       )}

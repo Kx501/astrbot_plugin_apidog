@@ -23,7 +23,7 @@ export default function Login() {
   };
 
   return (
-    <div className="page" style={{ maxWidth: 400, margin: "2rem auto" }}>
+    <div className="page page--narrow">
       <h2>配置管理登录</h2>
       <p className="muted">请输入本次启动时控制台/日志中显示的「Config API 临时密码」。</p>
       {error && <p className="error">{error}</p>}

@@ -2,61 +2,221 @@
 .app {
   min-height: 100vh;
   text-align: left;
+  display: flex;
 }
 
 #root {
   min-height: 100vh;
 }
 
-.header-bar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  width: 100%;
-  background: var(--bg-header);
-  box-shadow: 0 1px 0 var(--border);
-}
-
-.header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem 1.5rem 0;
-}
-
-.header-inner h1 {
-  font-size: 1.35rem;
-  margin: 0 0 0.75rem 0;
-  font-weight: 600;
-}
-
+/* 主内容区：flex 占满，便于后期加宽或加网格 */
 .main-inner {
+  flex: 1;
+  min-width: 0;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem 1.5rem 2rem;
+  padding: var(--space-md) var(--space-lg) var(--space-xl);
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* ---------- 导航：固定宽度，分割线在 header-inner 底部 ---------- */
-nav {
+/* ---------- 侧边栏 ---------- */
+.sidebar {
+  flex-shrink: 0;
+  width: 240px;
+  background: var(--bg-header);
+  border-right: 1px solid var(--border);
   display: flex;
-  gap: 0.35rem;
-  flex-wrap: nowrap;
-  padding-bottom: 0.75rem;
+  flex-direction: column;
+  transition: width 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-sm);
   border-bottom: 1px solid var(--border);
 }
 
-nav a {
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
+.sidebar__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-nav a:hover {
+.sidebar__toggle {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar__toggle:hover {
   background: var(--bg-nav-hover);
 }
 
-nav a.active {
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+}
+
+.sidebar-nav a {
+  display: block;
+  padding: var(--space-sm) var(--space-sm);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sidebar-nav a:hover {
+  background: var(--bg-nav-hover);
+}
+
+.sidebar-nav a.active {
   background: var(--nav-active);
   color: var(--nav-active-text);
+}
+
+.sidebar-nav__short {
+  display: none;
+}
+
+/* 桌面：折叠时侧栏收窄 */
+.sidebar--collapsed {
+  width: 60px;
+}
+
+.sidebar--collapsed .sidebar__title {
+  display: none;
+}
+
+.sidebar--collapsed .sidebar-nav__full {
+  display: none;
+}
+
+.sidebar--collapsed .sidebar-nav__short {
+  display: inline;
+}
+
+.sidebar--collapsed .sidebar-nav a {
+  padding: 0.5rem;
+  text-align: center;
+}
+
+/* 打开侧栏按钮：桌面常隐藏，小屏折叠时显示 */
+.sidebar-open-btn {
+  display: none;
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 12;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-header);
+  color: var(--text);
+  font-size: 1.25rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-open-btn:hover {
+  background: var(--bg-nav-hover);
+}
+
+/* 遮罩：仅小屏且侧栏展开时显示 */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 11;
+    width: 240px;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .sidebar--collapsed {
+    width: 240px;
+    transform: translateX(-100%);
+  }
+
+  .sidebar--collapsed .sidebar__title,
+  .sidebar--collapsed .sidebar-nav__short {
+    display: inline;
+  }
+
+  .sidebar--collapsed .sidebar-nav__full {
+    display: inline;
+  }
+
+  .sidebar--collapsed .sidebar-nav__short {
+    display: none;
+  }
+
+  .sidebar--collapsed .sidebar-nav a {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .app.sidebar-collapsed .sidebar-open-btn {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .main-inner {
+    margin: 0;
+    max-width: none;
+  }
+}
+
+/* ---------- 弹窗遮罩（与 .modal 配合复用） ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.modal-backdrop .modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  max-height: 88vh;
+  width: 90%;
+  max-width: 720px;
 }
 
 /* ---------- 括号原文（小号） ---------- */
@@ -66,62 +226,83 @@ nav a.active {
   font-weight: normal;
 }
 
-/* ---------- 页面通用 ---------- */
+/* ---------- 页面通用（标题 → 说明 → 错误 → 操作区 → 内容） ---------- */
 .page {
   min-height: 40vh;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .page h2 {
-  font-size: 1.2rem;
-  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  margin: 0 0 var(--space-sm) 0;
   font-weight: 600;
-}
-
-.page .error {
-  color: var(--error);
-  margin: 0.5rem 0 0.75rem 0;
-  font-size: 0.9rem;
 }
 
 .page .muted {
   color: var(--text-muted);
   font-size: 0.875rem;
-  margin: 0.25rem 0 0.75rem 0;
+  margin: 0 0 var(--space-sm) 0;
 }
 
-/* 统一：标题下先按钮行，再内容 */
+.page .error {
+  color: var(--error);
+  font-size: 0.9rem;
+  margin: 0 0 var(--space-sm) 0;
+}
+
 .page .button-row {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   flex-wrap: wrap;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
   align-items: center;
+}
+
+/* 窄版居中（如 Login） */
+.page--narrow {
+  max-width: 400px;
+  margin: var(--space-xl) auto;
 }
 
 /* ---------- 表单（非弹窗）：输入框适中宽度 ---------- */
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.3rem;
+  margin-bottom: var(--space-xs);
   font-size: 0.9rem;
 }
 
+.form-group label.toggle {
+  display: inline-flex;
+  margin-bottom: 0;
+}
+
 .form-group input[type="text"],
+.form-group input[type="url"],
 .form-group input[type="number"],
 .form-group select,
 .form-group textarea {
   width: 100%;
   max-width: 520px;
-  padding: 0.45rem 0.6rem;
+  padding: var(--space-sm) var(--space-sm);
   border: 1px solid var(--border-input);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--bg-input);
   color: inherit;
   box-sizing: border-box;
   font-size: inherit;
+}
+
+.form-group input.input-url,
+.form-group input[type="url"] {
+  min-width: 18em;
+  max-width: 100%;
 }
 
 .form-group select {
@@ -147,12 +328,75 @@ nav a.active {
   vertical-align: middle;
 }
 
-/* ---------- 弹窗内表单：输入框撑满，下拉收窄 ---------- */
+/* ---------- 开关（用 label.toggle 包 input[type="checkbox"] + .toggle__track） ---------- */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.toggle__track {
+  display: block;
+  width: 2.25em;
+  height: 1.25em;
+  border-radius: 999px;
+  background: var(--border);
+  flex-shrink: 0;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.toggle__track::after {
+  content: "";
+  position: absolute;
+  left: 0.125em;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.toggle input:checked + .toggle__track {
+  background: var(--nav-active);
+}
+
+.toggle input:checked + .toggle__track::after {
+  transform: translateY(-50%) translateX(1em);
+}
+
+.toggle input:focus-visible + .toggle__track {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+/* ---------- 弹窗内表单：输入框撑满，数字框收窄 ---------- */
 .modal .form-group input[type="text"],
-.modal .form-group input[type="number"],
+.modal .form-group input[type="url"],
 .modal .form-group textarea {
   max-width: none;
   width: 100%;
+  min-width: 0;
+}
+
+.modal .form-group input[type="number"] {
+  width: 100%;
+  max-width: 10em;
+  min-width: 0;
 }
 
 .modal .form-group select {
@@ -172,7 +416,7 @@ nav a.active {
 .table th,
 .table td {
   border: 1px solid var(--border);
-  padding: 0.5rem 0.65rem;
+  padding: var(--space-sm) 0.75rem;
   text-align: left;
 }
 
@@ -192,42 +436,82 @@ nav a.active {
 .table td input.table-input {
   width: 100%;
   min-width: 5em;
-  padding: 0.35rem 0.5rem;
+  padding: var(--space-sm);
   box-sizing: border-box;
   border: 1px solid var(--border-input);
-  border-radius: 4px;
+  border-radius: var(--radius);
   background: var(--bg-input);
   color: inherit;
   font-size: inherit;
 }
 
-/* ---------- 弹窗 ---------- */
+.table td input.table-input--wide {
+  min-width: 12em;
+}
+
+/* ---------- 弹窗（可单独用或放在 .modal-backdrop 内居中） ---------- */
 .modal {
-  margin-top: 1.25rem;
-  padding: 1.25rem;
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--bg-card);
   max-width: 720px;
   max-height: 88vh;
   overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.modal-header h3,
+.modal-header .modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal-close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: var(--bg-nav-hover);
 }
 
 .modal h3 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 var(--space-md) 0;
   font-size: 1.1rem;
 }
 
 .modal .button-row {
-  margin-top: 1rem;
+  margin-top: var(--space-md);
   margin-bottom: 0;
 }
 
 /* ---------- 折叠区块 ---------- */
 .accordion-section {
   border: 1px solid var(--border);
-  border-radius: 6px;
-  margin-bottom: 0.75rem;
+  border-radius: var(--radius);
+  margin-bottom: var(--space-sm);
   overflow: hidden;
 }
 
@@ -235,7 +519,7 @@ nav a.active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0.85rem;
+  padding: var(--space-sm) var(--space-md);
   background: var(--bg-accordion-head);
   cursor: pointer;
   user-select: none;
@@ -254,7 +538,7 @@ nav a.active {
   border-right: 2px solid var(--accordion-arrow);
   border-bottom: 2px solid var(--accordion-arrow);
   transform: rotate(45deg);
-  margin-left: 0.5rem;
+  margin-left: var(--space-sm);
   transition: transform 0.2s;
 }
 
@@ -264,7 +548,7 @@ nav a.active {
 
 .accordion-body {
   display: none;
-  padding: 0.85rem 1rem;
+  padding: var(--space-md);
   border-top: 1px solid var(--border);
 }
 
@@ -279,11 +563,11 @@ nav a.active {
   min-height: 200px;
   font-family: ui-monospace, monospace;
   font-size: 0.875rem;
-  padding: 0.6rem;
+  padding: var(--space-sm);
   box-sizing: border-box;
-  margin: 0.5rem 0;
+  margin: var(--space-sm) 0;
   border: 1px solid var(--border-input);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--bg-input);
   color: inherit;
   resize: vertical;
@@ -294,19 +578,19 @@ nav a.active {
   min-height: 120px;
   font-family: ui-monospace, monospace;
   font-size: 0.875rem;
-  padding: 0.5rem;
+  padding: var(--space-sm);
   box-sizing: border-box;
-  margin: 0.5rem 0;
+  margin: var(--space-sm) 0;
   border: 1px solid var(--border-input);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--bg-input);
   color: inherit;
   resize: vertical;
 }
 
-/* ---------- 区块分隔（Groups 等） ---------- */
+/* ---------- 区块分隔（Config、Groups 等） ---------- */
 .page-section {
-  margin-top: 1.5rem;
+  margin-top: var(--space-lg);
 }
 
 .page-section:first-of-type {
@@ -315,14 +599,14 @@ nav a.active {
 
 .page-section h3 {
   font-size: 1rem;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 var(--space-sm) 0;
   font-weight: 600;
 }
 
 .page-section .muted {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
 }
 
 .page-section .table {
-  margin-top: 0.25rem;
+  margin-top: var(--space-xs);
 }

@@ -35,7 +35,9 @@ class ApiDogStar(Star):
         start_scheduler(self._data_dir, send_message=self._send_scheduled_result)
         api_app = create_app(self._data_dir)
         port = get_api_port(self._data_dir)
-        config = uvicorn.Config(api_app, host="0.0.0.0", port=port)
+        config = uvicorn.Config(
+            api_app, host="0.0.0.0", port=port, access_log=False
+        )
         self._uvicorn_server = uvicorn.Server(config)
         self._uvicorn_thread = threading.Thread(target=self._uvicorn_server.run, daemon=True)
         self._uvicorn_thread.start()
@@ -112,7 +114,7 @@ class ApiDogStar(Star):
             group_id = str(gid) if gid is not None else None
         except Exception:
             group_id = None
-        ctx = CallContext(user_id=user_id, group_id=group_id, is_admin=event.is_admin())
+        ctx = CallContext(user_id=user_id, group_id=group_id)
 
         extra_config: dict[str, Any] | None = None
         try:

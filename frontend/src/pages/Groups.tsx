@@ -30,8 +30,8 @@ export default function Groups() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [rawOpen, setRawOpen] = useState(false);
   const [raw, setRaw] = useState("");
+  const [rawJsonOpen, setRawJsonOpen] = useState(false);
 
   useEffect(() => {
     getGroups()
@@ -77,7 +77,10 @@ export default function Groups() {
     setSaving(true);
     setError(null);
     putGroups(parsed)
-      .then(() => setSaving(false))
+      .then(() => {
+        setSaving(false);
+        setRawJsonOpen(false);
+      })
       .catch((e) => {
         setError(String(e));
         setSaving(false);
@@ -114,99 +117,134 @@ export default function Groups() {
         <button onClick={handleSave} disabled={saving}>
           {saving ? "保存中…" : "保存"}
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setRaw(
+              JSON.stringify(
+                {
+                  user_groups: fromRows(userRows),
+                  group_groups: fromRows(groupRows),
+                },
+                null,
+                2
+              )
+            );
+            setRawJsonOpen(true);
+          }}
+        >
+          编辑原始 JSON
+        </button>
       </div>
       <section className="page-section">
         <h3>用户组 <span className="field-origin">(user_groups)</span></h3>
         <p className="muted">组名 → 成员 ID 列表，逗号分隔</p>
         <table className="table">
-        <thead>
-          <tr>
-            <th>组名</th>
-            <th>成员 <span className="field-origin">(逗号分隔)</span></th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {userRows.map((row, i) => (
-            <tr key={i}>
-              <td>
-                <input
-                  className="table-input"
-                  value={row.name}
-                  onChange={(e) => updateRow(setUserRows, i, "name", e.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  className="table-input"
-                  value={row.members}
-                  onChange={(e) => updateRow(setUserRows, i, "members", e.target.value)}
-                />
-              </td>
-              <td>
-                <button onClick={() => removeRow(setUserRows, i)}>删除</button>
-              </td>
+          <thead>
+            <tr>
+              <th>组名</th>
+              <th>成员 <span className="field-origin">(逗号分隔)</span></th>
+              <th>操作</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {userRows.map((row, i) => (
+              <tr key={i}>
+                <td>
+                  <input
+                    className="table-input table-input--wide"
+                    value={row.name}
+                    onChange={(e) => updateRow(setUserRows, i, "name", e.target.value)}
+                  />
+                </td>
+                <td>
+                  <input
+                    className="table-input"
+                    value={row.members}
+                    onChange={(e) => updateRow(setUserRows, i, "members", e.target.value)}
+                  />
+                </td>
+                <td>
+                  <button onClick={() => removeRow(setUserRows, i)}>删除</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
 
       <section className="page-section">
         <h3>群组 <span className="field-origin">(group_groups)</span></h3>
         <p className="muted">组名 → 群 ID 列表，逗号分隔</p>
         <table className="table">
-        <thead>
-          <tr>
-            <th>组名</th>
-            <th>成员 <span className="field-origin">(逗号分隔)</span></th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {groupRows.map((row, i) => (
-            <tr key={i}>
-              <td>
-                <input
-                  className="table-input"
-                  value={row.name}
-                  onChange={(e) => updateRow(setGroupRows, i, "name", e.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  className="table-input"
-                  value={row.members}
-                  onChange={(e) => updateRow(setGroupRows, i, "members", e.target.value)}
-                />
-              </td>
-              <td>
-                <button onClick={() => removeRow(setGroupRows, i)}>删除</button>
-              </td>
+          <thead>
+            <tr>
+              <th>组名</th>
+              <th>成员 <span className="field-origin">(逗号分隔)</span></th>
+              <th>操作</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {groupRows.map((row, i) => (
+              <tr key={i}>
+                <td>
+                  <input
+                    className="table-input table-input--wide"
+                    value={row.name}
+                    onChange={(e) => updateRow(setGroupRows, i, "name", e.target.value)}
+                  />
+                </td>
+                <td>
+                  <input
+                    className="table-input"
+                    value={row.members}
+                    onChange={(e) => updateRow(setGroupRows, i, "members", e.target.value)}
+                  />
+                </td>
+                <td>
+                  <button onClick={() => removeRow(setGroupRows, i)}>删除</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
 
-      <div className={`accordion-section ${rawOpen ? "open" : ""}`} style={{ marginTop: "1.5rem" }}>
-        <div className="accordion-head" onClick={() => setRawOpen(!rawOpen)}>
-          编辑原始 JSON
-        </div>
-        <div className="accordion-body">
-          <textarea
-            className="json-edit"
-            value={raw}
-            onChange={(e) => setRaw(e.target.value)}
-            rows={14}
-          />
-          <div className="button-row">
-            <button onClick={handleSaveRaw} disabled={saving}>
-              从 JSON 保存
-            </button>
+      {rawJsonOpen && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setRawJsonOpen(false)}
+          onKeyDown={(e) => e.key === "Escape" && setRawJsonOpen(false)}
+          role="button"
+          tabIndex={0}
+          aria-label="关闭"
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="groups-raw-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3 id="groups-raw-title">编辑原始 JSON</h3>
+              <button type="button" className="modal-close" onClick={() => setRawJsonOpen(false)} aria-label="关闭">×</button>
+            </div>
+            <textarea
+              className="json-edit"
+              value={raw}
+              onChange={(e) => setRaw(e.target.value)}
+              rows={14}
+            />
+            <div className="button-row">
+              <button onClick={handleSaveRaw} disabled={saving}>
+                从 JSON 保存
+              </button>
+              <button type="button" onClick={() => setRawJsonOpen(false)}>取消</button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

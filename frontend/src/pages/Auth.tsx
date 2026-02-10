@@ -60,8 +60,8 @@ export default function Auth() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [rawOpen, setRawOpen] = useState(false);
   const [raw, setRaw] = useState("");
+  const [rawJsonOpen, setRawJsonOpen] = useState(false);
 
   useEffect(() => {
     getAuth()
@@ -100,7 +100,10 @@ export default function Auth() {
     setSaving(true);
     setError(null);
     putAuth(parsed)
-      .then(() => setSaving(false))
+      .then(() => {
+        setSaving(false);
+        setRawJsonOpen(false);
+      })
       .catch((e) => {
         setError(String(e));
         setSaving(false);
@@ -128,6 +131,15 @@ export default function Auth() {
         <button onClick={handleSave} disabled={saving}>
           {saving ? "保存中…" : "保存"}
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setRaw(JSON.stringify(toApi(entries), null, 2));
+            setRawJsonOpen(true);
+          }}
+        >
+          编辑原始 JSON
+        </button>
       </div>
       <table className="table">
         <thead>
@@ -143,7 +155,7 @@ export default function Auth() {
             <tr key={i}>
               <td>
                 <input
-                  className="table-input"
+                  className="table-input table-input--wide"
                   value={e.name}
                   onChange={(ev) => update(i, "name", ev.target.value)}
                 />
@@ -162,7 +174,7 @@ export default function Auth() {
               <td>
                 {e.type === "bearer" && (
                   <input
-                    className="table-input"
+                    className="table-input table-input--wide"
                     placeholder="token"
                     value={e.token ?? ""}
                     onChange={(ev) => update(i, "token", ev.target.value)}
@@ -178,19 +190,19 @@ export default function Auth() {
                       style={{ width: "8em" }}
                     />
                     <input
-                      className="table-input"
+                      className="table-input table-input--wide"
                       placeholder="value"
                       value={e.value ?? ""}
                       onChange={(ev) => update(i, "value", ev.target.value)}
-                      style={{ minWidth: "10em" }}
                     />
-                    <label style={{ whiteSpace: "nowrap" }}>
+                    <span style={{ display: "block", marginBottom: "0.25rem" }}>query</span>
+                    <label className="toggle">
                       <input
                         type="checkbox"
                         checked={e.inQuery ?? false}
                         onChange={(ev) => update(i, "inQuery", ev.target.checked)}
                       />
-                      query
+                      <span className="toggle__track" aria-hidden="true" />
                     </label>
                   </span>
                 )}
@@ -222,24 +234,41 @@ export default function Auth() {
         </tbody>
       </table>
 
-      <div className={`accordion-section ${rawOpen ? "open" : ""}`} style={{ marginTop: "1.5rem" }}>
-        <div className="accordion-head" onClick={() => setRawOpen(!rawOpen)}>
-          编辑原始 JSON
-        </div>
-        <div className="accordion-body">
-          <textarea
-            className="json-edit"
-            value={raw}
-            onChange={(ev) => setRaw(ev.target.value)}
-            rows={12}
-          />
-          <div className="button-row">
-            <button onClick={handleSaveRaw} disabled={saving}>
-              从 JSON 保存
-            </button>
+      {rawJsonOpen && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setRawJsonOpen(false)}
+          onKeyDown={(e) => e.key === "Escape" && setRawJsonOpen(false)}
+          role="button"
+          tabIndex={0}
+          aria-label="关闭"
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="auth-raw-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3 id="auth-raw-title">编辑原始 JSON</h3>
+              <button type="button" className="modal-close" onClick={() => setRawJsonOpen(false)} aria-label="关闭">×</button>
+            </div>
+            <textarea
+              className="json-edit"
+              value={raw}
+              onChange={(ev) => setRaw(ev.target.value)}
+              rows={12}
+            />
+            <div className="button-row">
+              <button onClick={handleSaveRaw} disabled={saving}>
+                从 JSON 保存
+              </button>
+              <button type="button" onClick={() => setRawJsonOpen(false)}>取消</button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

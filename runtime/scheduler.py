@@ -39,7 +39,7 @@ async def _run_scheduled(
     target_session: str | None,
     send_message: SendMessageFn | None,
 ) -> None:
-    ctx = CallContext(user_id="scheduler", group_id=None, is_admin=True)
+    ctx = CallContext(user_id="scheduler", group_id=None)
     result = await run(data_dir, raw_args, ctx, None)
     if not result.success:
         logger.warning("Scheduled call failed: %s", result.message)

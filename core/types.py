@@ -11,17 +11,15 @@ ResultType = Literal["text", "image", "video", "audio"]
 class CallContext:
     """Platform-agnostic call context for permission and placeholders."""
 
-    __slots__ = ("user_id", "group_id", "is_admin")
+    __slots__ = ("user_id", "group_id")
 
     def __init__(
         self,
         user_id: str | None = None,
         group_id: str | None = None,
-        is_admin: bool = False,
     ) -> None:
         self.user_id = user_id
         self.group_id = group_id
-        self.is_admin = is_admin
 
 
 class CallResult:

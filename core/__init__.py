@@ -41,7 +41,7 @@ def _log_call(
         parts.append(f"status_code={status_code}")
     if error_type:
         parts.append(f"error={error_type}")
-    logger.info(" ".join(parts))
+    logger.debug(" ".join(parts))
 
 
 async def run(

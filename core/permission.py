@@ -12,16 +12,13 @@ def check_permission(
     groups: dict | None = None,
 ) -> tuple[bool, str]:
     """
-    Only require_admin, allowed_user_groups, allowed_group_groups are used.
+    allowed_user_groups, allowed_group_groups are used.
     allowed_users / allowed_groups in api are ignored.
     groups: {"user_groups": {name: [uid,...]}, "group_groups": {name: [gid,...]}}.
     """
     groups = groups or {}
     user_groups = groups.get("user_groups") or {}
     group_groups = groups.get("group_groups") or {}
-
-    if api.get("require_admin") is True and not ctx.is_admin:
-        return False, "需要管理员权限。"
 
     allowed_user_groups = api.get("allowed_user_groups") or []
     if allowed_user_groups and ctx.user_id is not None:
