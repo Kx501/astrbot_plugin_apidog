@@ -10,12 +10,13 @@ from typing import Any, List
 
 import uvicorn
 from astrbot.api import logger as _ab_logger
-from astrbot.api.event import AstrMessageEvent, filter
+from astrbot.api.event import AstrMessageEvent, MessageChain, filter
 from astrbot.api.star import Context, Star, StarTools, register
 from astrbot.api.message_components import Image, Plain, Record, Video
 
 from .api import create_app
 from .core import CallContext, CallResult, run
+from .core.loader import get_api_port
 from .core.log_helper import set_apidog_logger
 from .runtime import start_scheduler
 
@@ -33,10 +34,19 @@ class ApiDogStar(Star):
         self._data_dir = Path(StarTools.get_data_dir(None))
         start_scheduler(self._data_dir, send_message=self._send_scheduled_result)
         api_app = create_app(self._data_dir)
-        threading.Thread(
-            target=lambda: uvicorn.run(api_app, host="0.0.0.0", port=5787),
-            daemon=True,
-        ).start()
+        port = get_api_port(self._data_dir)
+        config = uvicorn.Config(api_app, host="0.0.0.0", port=port)
+        self._uvicorn_server = uvicorn.Server(config)
+        self._uvicorn_thread = threading.Thread(target=self._uvicorn_server.run, daemon=True)
+        self._uvicorn_thread.start()
+
+    async def terminate(self) -> None:
+        """Plugin unload: stop uvicorn to release the configured API port."""
+        if getattr(self, "_uvicorn_server", None) is not None:
+            self._uvicorn_server.should_exit = True
+            thread = getattr(self, "_uvicorn_thread", None)
+            if thread is not None and thread.is_alive():
+                thread.join(timeout=3.0)
 
     def _result_to_chain(self, result: CallResult) -> List[Any]:
         """Build AstrBot message chain (list of components) from CallResult for proactive send."""
@@ -75,8 +85,9 @@ class ApiDogStar(Star):
 
     async def _send_scheduled_result(self, target_session: str, result: CallResult) -> None:
         """Send scheduled task result to target session (AstrBot: unified_msg_origin)."""
-        chain = self._result_to_chain(result)
-        await self.context.send_message(target_session, chain)
+        components = self._result_to_chain(result)
+        message_chain = MessageChain(chain=components)
+        await self.context.send_message(target_session, message_chain)
 
     @filter.command("api")
     async def cmd_api(self, event: AstrMessageEvent) -> None:

@@ -1,4 +1,6 @@
-const base = import.meta.env.VITE_API_URL ?? "http://localhost:5787";
+const base =
+  (import.meta.env.VITE_API_URL && String(import.meta.env.VITE_API_URL).trim()) ||
+  (typeof window !== "undefined" ? `${window.location.origin}/api` : "http://localhost:5787/api");
 
 const PASSWORD_KEY = "apidog_config_password";
 

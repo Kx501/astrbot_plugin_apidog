@@ -1,5 +1,14 @@
+import { useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import "./App.css";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function Nav() {
   const loc = useLocation();
@@ -23,14 +32,17 @@ function Nav() {
 
 export default function App() {
   return (
-    <>
-      <header>
-        <h1>ApiDog 配置管理</h1>
-        <Nav />
+    <div className="app">
+      <ScrollToTop />
+      <header className="header-bar">
+        <div className="header-inner">
+          <h1>ApiDog 配置管理</h1>
+          <Nav />
+        </div>
       </header>
-      <main>
+      <main className="main-inner">
         <Outlet />
       </main>
-    </>
+    </div>
   );
 }

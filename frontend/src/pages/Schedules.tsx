@@ -37,18 +37,20 @@ export default function Schedules() {
   if (loading) return <p>加载中…</p>;
   return (
     <div className="page">
-      <h2>计划任务 (schedules.json)</h2>
+      <h2>计划任务 <span className="field-origin">(schedules.json)</span></h2>
       {error && <p className="error">{error}</p>}
-      <button onClick={add}>新增</button>
-      <button onClick={handleSave} disabled={saving} style={{ marginLeft: 8 }}>
-        {saving ? "保存中…" : "保存"}
-      </button>
+      <div className="button-row">
+        <button onClick={add}>新增</button>
+        <button onClick={handleSave} disabled={saving}>
+          {saving ? "保存中…" : "保存"}
+        </button>
+      </div>
       <table className="table">
         <thead>
           <tr>
-            <th>api_key</th>
-            <th>cron</th>
-            <th>target_session</th>
+            <th>接口键 <span className="field-origin">(api_key)</span></th>
+            <th>cron 表达式 <span className="field-origin">(cron)</span></th>
+            <th>目标会话 <span className="field-origin">(target_session)</span></th>
             <th>操作</th>
           </tr>
         </thead>
@@ -57,23 +59,23 @@ export default function Schedules() {
             <tr key={i}>
               <td>
                 <input
+                  className="table-input"
                   value={String(row.api_key ?? "")}
                   onChange={(e) => update(i, "api_key", e.target.value)}
-                  size={12}
                 />
               </td>
               <td>
                 <input
+                  className="table-input"
                   value={String(row.cron ?? "")}
                   onChange={(e) => update(i, "cron", e.target.value)}
-                  size={14}
                 />
               </td>
               <td>
                 <input
+                  className="table-input"
                   value={String(row.target_session ?? "")}
                   onChange={(e) => update(i, "target_session", e.target.value)}
-                  size={20}
                 />
               </td>
               <td>

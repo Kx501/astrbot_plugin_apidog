@@ -33,10 +33,21 @@ export default function Config() {
   if (loading) return <p>加载中…</p>;
   return (
     <div className="page">
-      <h2>全局配置 (config.json)</h2>
+      <h2>全局配置 <span className="field-origin">(config.json)</span></h2>
       {error && <p className="error">{error}</p>}
       <div className="form-group">
-        <label>timeout_seconds</label>
+        <label>API 端口 <span className="field-origin">(api_port)</span></label>
+        <input
+          type="number"
+          min={1}
+          max={65535}
+          value={Number(data?.api_port ?? 5787)}
+          onChange={(e) => setData({ ...data, api_port: Number(e.target.value) || 5787 })}
+        />
+        <p className="muted">修改后需重载插件或重启 API 进程生效。</p>
+      </div>
+      <div className="form-group">
+        <label>超时秒数 <span className="field-origin">(timeout_seconds)</span></label>
         <input
           type="number"
           value={Number(data?.timeout_seconds ?? 30)}
@@ -44,7 +55,7 @@ export default function Config() {
         />
       </div>
       <div className="form-group">
-        <label>retry.max_attempts</label>
+        <label>重试次数 <span className="field-origin">(retry.max_attempts)</span></label>
         <input
           type="number"
           value={Number(retry.max_attempts ?? 0)}
@@ -54,7 +65,7 @@ export default function Config() {
         />
       </div>
       <div className="form-group">
-        <label>retry.backoff_seconds</label>
+        <label>重试间隔秒 <span className="field-origin">(retry.backoff_seconds)</span></label>
         <input
           type="number"
           step="0.5"
@@ -65,7 +76,7 @@ export default function Config() {
         />
       </div>
       <div className="form-group">
-        <label>retry_statuses (逗号分隔)</label>
+        <label>可重试状态码，逗号分隔 <span className="field-origin">(retry_statuses)</span></label>
         <input
           type="text"
           value={statuses}
@@ -80,9 +91,11 @@ export default function Config() {
           }
         />
       </div>
-      <button onClick={handleSave} disabled={saving}>
-        {saving ? "保存中…" : "保存"}
-      </button>
+      <div className="button-row">
+        <button onClick={handleSave} disabled={saving}>
+          {saving ? "保存中…" : "保存"}
+        </button>
+      </div>
     </div>
   );
 }

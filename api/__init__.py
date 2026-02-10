@@ -12,7 +12,9 @@ from typing import Any
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi import APIRouter
 
 from ..core import loader
 from ..core.log_helper import logger
@@ -87,7 +89,9 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
                 pass
             raise HTTPException(status_code=500, detail=f"Failed to write {path.name}: {e}") from e
 
-    @app.get("/config")
+    router = APIRouter()
+
+    @router.get("/config")
     def get_config(
         data_dir: Path = Depends(get_data_dir),
         _: None = Depends(require_password),
@@ -97,7 +101,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail="Invalid path")
         return _read_json(path, {})
 
-    @app.put("/config")
+    @router.put("/config")
     def put_config(
         body: dict[str, Any] = Body(...),
         data_dir: Path = Depends(get_data_dir),
@@ -111,14 +115,14 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         _write_json_atomic(path, body)
         return {"status": "ok"}
 
-    @app.get("/apis")
+    @router.get("/apis")
     def get_apis(
         data_dir: Path = Depends(get_data_dir),
         _: None = Depends(require_password),
     ) -> list[Any]:
         return loader.load_apis(data_dir)
 
-    @app.put("/apis")
+    @router.put("/apis")
     def put_apis(
         body: dict[str, Any] = Body(...),
         data_dir: Path = Depends(get_data_dir),
@@ -134,14 +138,14 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         _write_json_atomic(path, {"apis": body["apis"]})
         return {"status": "ok"}
 
-    @app.get("/schedules")
+    @router.get("/schedules")
     def get_schedules(
         data_dir: Path = Depends(get_data_dir),
         _: None = Depends(require_password),
     ) -> list[Any]:
         return loader.load_schedules(data_dir)
 
-    @app.put("/schedules")
+    @router.put("/schedules")
     def put_schedules(
         body: dict[str, Any] = Body(...),
         data_dir: Path = Depends(get_data_dir),
@@ -157,14 +161,14 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         _write_json_atomic(path, {"schedules": body["schedules"]})
         return {"status": "ok"}
 
-    @app.get("/groups")
+    @router.get("/groups")
     def get_groups(
         data_dir: Path = Depends(get_data_dir),
         _: None = Depends(require_password),
     ) -> Any:
         return loader.load_groups(data_dir)
 
-    @app.put("/groups")
+    @router.put("/groups")
     def put_groups(
         body: dict[str, Any] = Body(...),
         data_dir: Path = Depends(get_data_dir),
@@ -178,14 +182,14 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         _write_json_atomic(path, body)
         return {"status": "ok"}
 
-    @app.get("/auth")
+    @router.get("/auth")
     def get_auth(
         data_dir: Path = Depends(get_data_dir),
         _: None = Depends(require_password),
     ) -> Any:
         return loader.load_auth(data_dir)
 
-    @app.put("/auth")
+    @router.put("/auth")
     def put_auth(
         body: dict[str, Any] = Body(...),
         data_dir: Path = Depends(get_data_dir),
@@ -199,9 +203,30 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         _write_json_atomic(path, body)
         return {"status": "ok"}
 
+    app.include_router(router, prefix="/api")
+
     dist_dir = Path(__file__).resolve().parent.parent / "frontend" / "dist"
     if dist_dir.is_dir() and (dist_dir / "index.html").is_file():
-        app.mount("/", StaticFiles(directory=str(dist_dir), html=True), name="static")
+        assets_dir = dist_dir / "assets"
+        if assets_dir.is_dir():
+            app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="static_assets")
+        index_path = dist_dir / "index.html"
+
+        def _safe_relative_to(base: Path, child: Path) -> bool:
+            try:
+                child.relative_to(base)
+                return True
+            except ValueError:
+                return False
+
+        @app.get("/{full_path:path}")
+        def spa_fallback(full_path: str):
+            if not full_path or full_path.startswith("api/") or full_path.startswith("assets/"):
+                return FileResponse(index_path, media_type="text/html")
+            safe = (dist_dir / full_path).resolve()
+            if safe.is_file() and _safe_relative_to(dist_dir, safe):
+                return FileResponse(safe)
+            return FileResponse(index_path, media_type="text/html")
 
     return app
 
