@@ -17,6 +17,10 @@ from ..core.types import CallContext, CallResult
 
 _scheduler: AsyncIOScheduler | None = None
 _started: bool = False
+_data_dir: Path | None = None
+_send_message: "SendMessageFn | None" = None
+
+_JOB_ID_PREFIX = "apidog_schedule_"
 
 SendMessageFn = Callable[[str, CallResult], Awaitable[None]]
 
@@ -50,21 +54,23 @@ async def _run_scheduled(
             logger.exception("Scheduled send_message failed")
 
 
-def start_scheduler(data_dir: Path, send_message: SendMessageFn | None = None) -> None:
-    """Load schedules.json, start AsyncIOScheduler, register cron jobs. Call once at plugin load.
-    If called from sync context (e.g. __init__), scheduler is registered but started on first async use.
-    """
-    global _scheduler, _started
-    if _started:
-        return
-    schedules = load_schedules(data_dir)
-    if not schedules:
-        return
+def _get_loop_or_none() -> asyncio.AbstractEventLoop | None:
+    """Get an asyncio loop suitable for AsyncIOScheduler. Return None if unavailable."""
     try:
-        loop = asyncio.get_running_loop()
+        return asyncio.get_running_loop()
     except RuntimeError:
-        loop = asyncio.get_event_loop()
-    _scheduler = AsyncIOScheduler(loop=loop)
+        try:
+            return asyncio.get_event_loop()
+        except RuntimeError:
+            return None
+
+
+def _register_jobs(
+    scheduler: AsyncIOScheduler,
+    data_dir: Path,
+    schedules: list[dict],
+    send_message: SendMessageFn | None,
+) -> None:
     for i, item in enumerate(schedules):
         api_key = item.get("api_key")
         cron = item.get("cron")
@@ -79,7 +85,7 @@ def start_scheduler(data_dir: Path, send_message: SendMessageFn | None = None) -
             target_session = target_session.strip() or None
         else:
             target_session = None
-        job_id = f"apidog_schedule_{i}_{api_key}"
+        job_id = f"{_JOB_ID_PREFIX}{i}_{api_key}"
         try:
             trigger = CronTrigger.from_crontab(str(cron).strip())
         except Exception as e:
@@ -94,13 +100,68 @@ def start_scheduler(data_dir: Path, send_message: SendMessageFn | None = None) -
         ):
             async def _job() -> None:
                 await _run_scheduled(ddir, rargs, tsession, sfn)
+
             return _job
 
-        _scheduler.add_job(
+        scheduler.add_job(
             _make_job(data_dir, raw_args, target_session, send_message),
             trigger,
             id=job_id,
         )
         logger.info("Scheduled job %s: %s at %s", job_id, raw_args, cron)
+
+
+def start_scheduler(data_dir: Path, send_message: SendMessageFn | None = None) -> None:
+    """Load schedules.json, start AsyncIOScheduler, register cron jobs. Call once at plugin load.
+    If called from sync context (e.g. __init__), scheduler is registered but started on first async use.
+    """
+    global _scheduler, _started, _data_dir, _send_message
+    _data_dir = data_dir
+    _send_message = send_message
+    if _started:
+        return
+    loop = _get_loop_or_none()
+    if loop is None:
+        logger.warning("No asyncio event loop found; scheduler disabled")
+        return
+    _scheduler = AsyncIOScheduler(loop=loop)
+    schedules = load_schedules(data_dir)
+    if schedules:
+        _register_jobs(_scheduler, data_dir, schedules, send_message)
     _scheduler.start()
     _started = True
+
+
+def reload_schedules(data_dir: Path) -> None:
+    """Reload schedules.json and refresh cron jobs. Safe to call after PUT /api/schedules."""
+    global _scheduler, _started, _data_dir
+    _data_dir = data_dir
+    schedules = load_schedules(data_dir)
+
+    if _scheduler is None:
+        # Scheduler was never started (e.g. plugin started with empty schedules, or standalone API mode).
+        # Try to start it if possible; otherwise no-op.
+        start_scheduler(data_dir, _send_message)
+        return
+
+    # Remove all ApiDog jobs, then re-add according to latest schedules.
+    try:
+        for job in _scheduler.get_jobs():
+            try:
+                if str(job.id).startswith(_JOB_ID_PREFIX):
+                    _scheduler.remove_job(job.id)
+            except Exception:
+                logger.exception("Failed to remove job %s", getattr(job, "id", ""))
+    except Exception:
+        logger.exception("Failed to enumerate scheduler jobs")
+
+    if schedules:
+        _register_jobs(_scheduler, data_dir, schedules, _send_message)
+
+    # Ensure scheduler is started (in case it was created but not started).
+    if not _started:
+        try:
+            _scheduler.start()
+        except Exception:
+            logger.exception("Failed to start scheduler during reload")
+        _started = True

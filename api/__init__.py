@@ -18,6 +18,7 @@ from fastapi import APIRouter
 
 from ..core import loader
 from ..core.log_helper import logger
+from ..runtime import scheduler as scheduler_mod
 
 _ALLOWED_FILES = frozenset({"config.json", "apis.json", "schedules.json", "groups.json", "auth.json"})
 
@@ -113,6 +114,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="Body must be a JSON object")
         _write_json_atomic(path, body)
+        loader.invalidate_config(data_dir)
         return {"status": "ok"}
 
     @router.get("/apis")
@@ -136,6 +138,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         if not _ensure_inside(data_dir, path):
             raise HTTPException(status_code=400, detail="Invalid path")
         _write_json_atomic(path, {"apis": body["apis"]})
+        loader.invalidate_apis(data_dir)
         return {"status": "ok"}
 
     @router.get("/schedules")
@@ -159,6 +162,11 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         if not _ensure_inside(data_dir, path):
             raise HTTPException(status_code=400, detail="Invalid path")
         _write_json_atomic(path, {"schedules": body["schedules"]})
+        # 热重载：保存后立即刷新定时任务
+        try:
+            scheduler_mod.reload_schedules(data_dir)
+        except Exception:
+            logger.exception("Failed to reload schedules after PUT")
         return {"status": "ok"}
 
     @router.get("/groups")
@@ -180,6 +188,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         if not _ensure_inside(data_dir, path):
             raise HTTPException(status_code=400, detail="Invalid path")
         _write_json_atomic(path, body)
+        loader.invalidate_groups(data_dir)
         return {"status": "ok"}
 
     @router.get("/auth")
@@ -201,6 +210,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         if not _ensure_inside(data_dir, path):
             raise HTTPException(status_code=400, detail="Invalid path")
         _write_json_atomic(path, body)
+        loader.invalidate_auth(data_dir)
         return {"status": "ok"}
 
     app.include_router(router, prefix="/api")
