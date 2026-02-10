@@ -69,7 +69,8 @@ async def run(
 
     if api_key == "help":
         target = args[1] if len(args) > 1 else None
-        message = help_mod.build_help_message(apis, target)
+        allowed_apis = [a for a in apis if permission.check_permission(a, context, groups)[0]]
+        message = help_mod.build_help_message(allowed_apis, target)
         _log_call(api_key, context, True)
         return CallResult(success=True, message=message, result_type="text")
 
