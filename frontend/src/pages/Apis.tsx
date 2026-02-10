@@ -142,7 +142,7 @@ export default function Apis() {
     <>
       <div className="modal-header">
         <h3 id="apis-edit-title">编辑接口</h3>
-        <button type="button" className="modal-close" onClick={closeEdit} aria-label="关闭">×</button>
+        <button type="button" className="modal-close" onClick={closeEdit} aria-label="关闭">❌</button>
       </div>
       {jsonError && <p className="error">{jsonError}</p>}
       <div className={`accordion-section ${openBasic ? "open" : ""}`}>
