@@ -13,7 +13,6 @@
       "body": null,
       "response_type": "text",
       "response_path": "",
-      "require_admin": false,
       "allowed_user_groups": [],
       "allowed_group_groups": [],
       "rate_limit": {"max": 10, "window_seconds": 60},
@@ -35,7 +34,6 @@
       "response_type": "image",
       "response_path": "",
       "response_media_from": "body",
-      "require_admin": false,
       "allowed_user_groups": [],
       "allowed_group_groups": []
     },
@@ -52,7 +50,6 @@
       "body": null,
       "response_type": "video",
       "response_path": "data.url",
-      "require_admin": false,
       "allowed_user_groups": [],
       "allowed_group_groups": []
     },
@@ -69,7 +66,6 @@
       "body": null,
       "response_type": "audio",
       "response_path": "data.url",
-      "require_admin": false,
       "allowed_user_groups": [],
       "allowed_group_groups": []
     }

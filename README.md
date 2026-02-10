@@ -1,65 +1,63 @@
-# ApiDog (AstrBot Star)
+# ApiDog（AstrBot 插件）
 
-可配置 API 与指令绑定，通过单指令 `/api <接口名> [参数...]` 调用配置的 HTTP 接口。核心逻辑在 `core/` 包内，与具体 bot 平台无关；AstrBot 入口为 `main.py`（符合 [AstrBot 插件规范](https://docs.astrbot.app/dev/star/guides/simple.html)）。
+可配置 API 与指令绑定，通过单指令 `/api <接口名> [参数...]` 调用配置的 HTTP 接口。
 
 ## 安装
 
-将本插件放入 AstrBot 的 `data/plugins/` 下（如 `data/plugins/apidog/`），在管理面板中启用并安装依赖（httpx、apscheduler、fastapi、uvicorn；后两者用于配置管理 API）。
+将本插件放入 AstrBot 的 `data/plugins/` 下（如 `data/plugins/astrbot_plugin_apidog/`），在管理面板中启用并安装依赖（httpx、apscheduler、fastapi、uvicorn；后两者用于配置管理 API）。
 
 ## 配置
 
-- 数据目录：由 AstrBot 官方 API 按插件目录名自动确定（如 `data/plugin_data/astrbot_plugin_apidog/`）。将 `sample_apis.json` 复制到该目录下为 `apis.json` 并按需编辑。
-- 可选：将 **sample_config.json** 复制为同目录下 **config.json**，配置全局默认超时、重试及可重试状态码；不创建则使用内置默认（超时 30 秒、不重试）。**retry_statuses**（数组）：仅对列表中的 HTTP 状态码按重试策略重试，默认 `[500, 502, 503, 429]`，可按需增加 408、504 等。
-- 可选：将 `sample_auth.json` 复制为同目录下 `auth.json` 配置认证；将 `sample_groups.json` 复制为 `groups.json` 配置用户组与群组（API 权限由组名引用，见下）。
+- **数据目录**：由 AstrBot 按插件目录名确定（如 `data/plugin_data/astrbot_plugin_apidog/`）。将 `sample_apis.json` 复制到该目录为 `apis.json` 并按需编辑。
+- **config.json**（可选）：复制 `sample_config.json` 为 `config.json`，配置全局默认超时、重试及可重试状态码。不创建则使用内置默认（超时 30 秒、不重试）。`retry_statuses` 默认 `[500, 502, 503, 429]`，可增加 408、504 等。
+- **auth.json / groups.json**（可选）：复制 `sample_auth.json`、`sample_groups.json` 为 `auth.json`、`groups.json`，配置认证与用户组/群组（API 权限由组名引用）。
 
 ## 用法
 
-- `/api <接口名> [参数...]`  
-  例如：`/api 天气 北京`、`/api 翻译 "hello world" zh`
-- `/api help`：列出所有已配置接口（命令、名称及可选描述）
-- `/api help <接口名>`：查看该接口的详细帮助（参数、示例等）
-- 支持引号包裹含空格的参数；支持 `key=value` 命名参数
+- `/api <接口名> [参数...]`：如 `/api 天气 北京`、`/api 翻译 "hello world" zh`
+- `/api help`：列出已配置接口
+- `/api help <接口名>`：查看该接口详细帮助
+- 支持引号包裹含空格参数、`key=value` 命名参数
 
-## API 配置字段
+## API 配置要点
 
-- `id` / `command`：查表用，用户输入的接口名
-- `method`, `url`, `headers`, `params`, `body`
-- 占位符：`{{args.0}}`、`{{named.xxx}}`、`{{named.xxx|默认值}}`、`{{config.xxx}}`
-- `response_type`：**text** / **image** / **video** / **audio**；`response_path`：从 JSON 取结果的路径（媒体类型且为 URL 时为 URL 字段路径）
-- **`response_media_from`**：**url**（默认）或 **body**。为 `url` 时从响应 JSON 的 `response_path` 或兜底取媒体 URL；为 `body` 时接口直接返回二进制媒体（如 image/jpeg），将响应体作为媒体内容。对接「直接返回图片/音视频 body」的接口时使用 `body`。
-- 权限（仅按组）：**`require_admin`**（可选）、**`allowed_user_groups`**（可选，组名字符串数组）、**`allowed_group_groups`**（可选，组名字符串数组）。组定义在数据目录下的 **groups.json**（`user_groups`、`group_groups`），将 `sample_groups.json` 复制为 `groups.json` 并按需填写。未配置或空数组表示不限制该维度；配置了 `allowed_group_groups` 的接口仅群聊可调，私聊不可用。
-- **`description`**（可选）：一句话说明，用于 `/api help` 列表展示。
-- **`help_text`**（或 `help`，可选）：详情页自定义说明。配置后，在 `/api help <接口名>` 中会优先展示该段文案，便于管理员在后台或 apis.json 中维护使用说明、示例等。
-- **`enabled`**（可选，默认 true）：为 false 时该接口禁用，不可调用且不出现在 `/api help` 中。
-- **`rate_limit`**（可选）：按 (user_id, api_key) 限流，与权限组无关。仅支持对象 `{"max": N, "window_seconds": S}`（如 `{"max": 10, "window_seconds": 60}` 表示 60 秒内最多 10 次）。仅单进程有效，多实例需自行扩展。
-- **`rate_limit_global`**（可选）：按 api_key 全局限流，该 API 所有调用（真人 + 计划任务）在窗口内总次数不超过 N。格式同上。先检查全局限流，再检查 per-user 限流。
-- **`timeout_seconds`**（可选）：该 API 请求超时（秒），不配则使用 config.json 中的全局默认（或内置 30 秒）。
-- **`retry`**（可选）：重试策略。`false` 或 `0` 表示不重试；对象 `{ "max_attempts": N, "backoff_seconds": S }` 表示最多重试 N 次、间隔 S 秒。不配则使用 config.json 中的全局默认。仅对超时、5xx、429 重试。
+- **基础**：`id` / `command`、`method`、`url`、`headers`、`params`、`body`
+- **占位符**：`{{args.0}}`、`{{named.xxx}}`、`{{named.xxx|默认值}}`、`{{config.xxx}}`
+- **响应**：`response_type`（text / image / video / audio）、`response_path`（JSON 取结果路径）、`response_media_from`（url 或 body，body 表示接口直接返回二进制媒体）
+- **权限**：`allowed_user_groups`、`allowed_group_groups`（组在 groups.json 中定义）
+- **说明**：`description`（列表用）、`help_text` / `help`（详情页自定义）
+- **开关**：`enabled`（默认 true）
+- **限流**：`rate_limit`（按 user_id+api_key）、`rate_limit_global`（按 api_key 全局），格式 `{"max": N, "window_seconds": S}`
+- **超时与重试**：`timeout_seconds`、`retry`（false/0 或不配则用 config 默认；对象 `{ "max_attempts": N, "backoff_seconds": S }`）
 
 ## 计划任务
 
-- 将 **sample_schedules.json** 复制为数据目录下的 **schedules.json**，配置定时调用的 API。每项包含 **api_key**、**cron**（5 位 cron 表达式，如 `0 9 * * *` 每天 9 点）、可选 **args**（位置参数数组）、**named**（命名参数对象）。
-- **主动推送结果**：每项可配置 **target_session**（字符串，取值格式由当前 bot 平台决定）。配置后，计划任务执行完会将结果主动发送到该会话。AstrBot 下该值为目标群/私聊的 `unified_msg_origin`（可从一次消息事件获得，格式如 `平台:类型:会话ID`）。
-- 计划任务使用固定身份 **scheduler**（`user_id="scheduler"`）。在 **groups.json** 的 **user_groups** 中增加 **system** 组、成员为 `["scheduler"]`；需要被定时调用的 API 在 `allowed_user_groups` 中包含 `"system"`（或不限制用户组）。计划任务与真人一样参与 per-user 限流和全局限流。
+将 `sample_schedules.json` 复制为数据目录下 `schedules.json`。每项含 **api_key**、**cron**（5 位 cron，如 `0 9 * * *`）、可选 **args** / **named**。可配置 **target_session** 主动推送结果（AstrBot 下为 `unified_msg_origin`）。计划任务以 `user_id="scheduler"` 执行，需在 groups.json 的 user_groups 中建 system 组并加入 `scheduler`，API 的 `allowed_user_groups` 含 `"system"` 或不限制用户组。
 
 ## 认证 (auth.json)
 
-- `bearer`：`type: bearer`, `token: "..."`
-- `api_key`：`type: api_key`, `header: "X-API-Key"`, `value: "..."` 或 `in: query`
-- `basic`：`type: basic`, `username`, `password`
+- **bearer**：`type: bearer`, `token: "..."`
+- **api_key**：`type: api_key`, `header: "X-API-Key"`, `value: "..."` 或 `in: query`
+- **basic**：`type: basic`, `username`, `password`
 
 ## 配置管理前端
 
-- 启用插件后，打开 **http://localhost:5787/** 即为配置管理页面（前端随插件提供，无需单独部署）。默认端口 **5787**，可在 config.json 的 `api_port` 中修改（或于配置页设置）；修改后需重载插件生效。
-- **临时密码**：每次启动会生成新的临时密码，请在 AstrBot 或控制台日志中查看「**Config API 临时密码: xxx**」，在配置页登录时输入该密码。
-- **后端**：读写 config/apis/schedules/groups/auth 的 HTTP 接口；启用 AstrBot 插件时由插件自动在配置的端口启动（默认 5787，见 config.json 的 `api_port`），数据目录为插件数据目录。独立运行：`python -m api`（端口从 data 目录下 config.json 的 `api_port` 读取，默认 5787）或 `uvicorn api.app:app --host 0.0.0.0 --port 5787`，数据目录为项目根下 **data**（不存在则自动创建）。
-- **修改前端**：在 **frontend/** 下执行 `npm install && npm run build`，将生成的 **dist** 目录提交或覆盖到插件中即可。
+- 启用插件后访问 **http://localhost:5787/** 即为配置页（端口可在 config.json 的 `api_port` 修改，改后需重载插件）。
+- **登录**：每次启动生成新临时密码，在 AstrBot 或控制台日志中查看「Config API 临时密码: xxx」。
+- **后端**：读写 config/apis/schedules/groups/auth；插件启用时自动在配置端口启动。独立运行：`python -m api`（端口与数据目录从 config 读取）或 `uvicorn api.app:app --host 0.0.0.0 --port 5787`（数据目录为项目根下 **data**）。
+- **改前端**：在 `frontend/` 下执行 `npm install && npm run build`，将 `dist` 提交或覆盖到插件中。
+
+## 项目结构
+
+| 目录/文件 | 说明 |
+|-----------|------|
+| core/ | 核心逻辑（解析、请求、响应、权限、限流、认证），仅依赖 httpx |
+| api/ | 配置管理后端（FastAPI） |
+| runtime/ | 计划任务调度（APScheduler） |
+| frontend/ | 配置管理前端（React + Vite），产物 `frontend/dist` |
+| main.py | AstrBot 插件入口 |
+| sample_*.json | 各配置示例 |
 
 ## 迁移到其他平台
 
-核心逻辑在 `core/` 包内（仅依赖 httpx，内含 `parse_args` 等），无任何 bot 依赖。迁移时保留整个 `core/` 目录及数据目录结构，按目标平台要求新建或替换入口文件（如 `main.py`），在入口中：从平台事件解析出用户输入与 `user_id` / `group_id` / `is_admin`，构造 `CallContext`，调用 `core.run(data_dir, raw_args, context, extra_config)`，再根据返回的 `CallResult`（`success`、`result_type`、`message`、`media_url` 或 `media_bytes`+`media_content_type`）调用该平台的发文本/图/视频/音频 API。
-
-## TODO
-
-- 配置校验 / 热重载
-- 结果缓存
+`core/` 无 bot 依赖。迁移时保留 `core/` 及数据目录结构，在新入口中：从平台事件解析用户输入与 user_id/group_id/is_admin，构造 `CallContext`，调用 `core.run(data_dir, raw_args, context, extra_config)`，再根据返回的 `CallResult` 调用该平台的发消息 API。
