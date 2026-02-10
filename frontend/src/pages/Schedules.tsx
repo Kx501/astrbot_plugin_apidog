@@ -48,26 +48,16 @@ export default function Schedules() {
       <table className="table">
         <thead>
           <tr>
-            <th>启用 <span className="field-origin">(enabled)</span></th>
             <th>接口 id <span className="field-origin">(api_key)</span></th>
             <th>cron 表达式 <span className="field-origin">(cron)</span></th>
             <th>目标会话 <span className="field-origin">(target_session)</span></th>
+            <th>启用 <span className="field-origin">(enabled)</span></th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
           {list.map((row, i) => (
             <tr key={i}>
-              <td>
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={row.enabled !== false}
-                    onChange={() => update(i, "enabled", row.enabled === false)}
-                  />
-                  <span className="toggle__track" aria-hidden="true" />
-                </label>
-              </td>
               <td>
                 <input
                   className="table-input table-input--wide"
@@ -91,6 +81,16 @@ export default function Schedules() {
                   onChange={(e) => update(i, "target_session", e.target.value)}
                   placeholder="可选"
                 />
+              </td>
+              <td>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={row.enabled !== false}
+                    onChange={() => update(i, "enabled", row.enabled === false)}
+                  />
+                  <span className="toggle__track" aria-hidden="true" />
+                </label>
               </td>
               <td>
                 <button onClick={() => remove(i)}>删除</button>

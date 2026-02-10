@@ -64,3 +64,6 @@
 ## 迁移到其他平台
 
 `core/` 无 bot 依赖。迁移时保留 `core/` 及数据目录结构，在新入口中：从平台事件解析用户输入与 user_id/group_id/is_admin，构造 `CallContext`，调用 `core.run(data_dir, raw_args, context, extra_config)`，再根据返回的 `CallResult` 调用该平台的发消息 API。
+
+## 开发部署指南
+见 [DEVELOPMENT.md](/DEVELOPMENT.md)
