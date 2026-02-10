@@ -100,7 +100,6 @@ export default function Apis() {
       response_media_from: "url",
       description: "",
       help_text: "",
-      require_admin: false,
       allowed_user_groups: [] as string[],
       allowed_group_groups: [] as string[],
       timeout_seconds: undefined as number | undefined,
@@ -226,9 +225,11 @@ export default function Apis() {
               </div>
               <div className="form-group">
                 <label>描述 <span className="field-origin">(description)</span></label>
-                <input
+                <textarea
                   value={String(editRow.description ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, description: e.target.value })}
+                  rows={3}
+                  placeholder="接口简短说明，可选"
                 />
               </div>
               <div className="form-group">
@@ -237,7 +238,7 @@ export default function Apis() {
                   value={String(editRow.help_text ?? editRow.help ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, help_text: e.target.value })}
                   rows={3}
-                  style={{ maxWidth: "100%" }}
+                  placeholder="对用户的提示文案，可选"
                 />
               </div>
             </div>
@@ -374,6 +375,7 @@ export default function Apis() {
                 <input
                   value={arrToStr(editRow.allowed_user_groups)}
                   onChange={(e) => setEditRow({ ...editRow, allowed_user_groups: strToArr(e.target.value) })}
+                  placeholder="组名1, 组名2"
                 />
               </div>
               <div className="form-group">
@@ -381,6 +383,7 @@ export default function Apis() {
                 <input
                   value={arrToStr(editRow.allowed_group_groups)}
                   onChange={(e) => setEditRow({ ...editRow, allowed_group_groups: strToArr(e.target.value) })}
+                  placeholder="组名1, 组名2"
                 />
               </div>
             </div>

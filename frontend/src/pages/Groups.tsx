@@ -159,9 +159,10 @@ export default function Groups() {
                 </td>
                 <td>
                   <input
-                    className="table-input"
+                    className="table-input table-input--wide"
                     value={row.members}
                     onChange={(e) => updateRow(setUserRows, i, "members", e.target.value)}
+                    placeholder="id1, id2"
                   />
                 </td>
                 <td>
@@ -196,9 +197,10 @@ export default function Groups() {
                 </td>
                 <td>
                   <input
-                    className="table-input"
+                    className="table-input table-input--wide"
                     value={row.members}
                     onChange={(e) => updateRow(setGroupRows, i, "members", e.target.value)}
+                    placeholder="id1, id2"
                   />
                 </td>
                 <td>

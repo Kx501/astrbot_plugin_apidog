@@ -283,20 +283,27 @@
   margin-bottom: 0;
 }
 
-.form-group input[type="text"],
-.form-group input[type="url"],
-.form-group input[type="number"],
+/* ---------- 输入框基础样式（统一） ---------- */
+.form-group input:not([type="checkbox"]):not([type="radio"]),
+.form-group textarea,
 .form-group select,
-.form-group textarea {
-  width: 100%;
-  max-width: 520px;
-  padding: var(--space-sm) var(--space-sm);
+.table td input.table-input,
+.json-edit,
+.json-edit-sm {
+  padding: var(--space-sm);
   border: 1px solid var(--border-input);
   border-radius: var(--radius);
   background: var(--bg-input);
   color: inherit;
   box-sizing: border-box;
   font-size: inherit;
+}
+
+/* ---------- 表单（非弹窗）：输入框适中宽度 ---------- */
+.form-group input:not([type="checkbox"]):not([type="radio"]),
+.form-group textarea {
+  width: 100%;
+  max-width: 520px;
 }
 
 .form-group input.input-url,
@@ -384,12 +391,16 @@
   outline-offset: 2px;
 }
 
-/* ---------- 弹窗内表单：输入框撑满，数字框收窄 ---------- */
-.modal .form-group input[type="text"],
-.modal .form-group input[type="url"],
-.modal .form-group textarea {
-  max-width: none;
+/* ---------- 弹窗内表单：输入框适中宽，数字框收窄 ---------- */
+.modal .form-group input:not([type="checkbox"]):not([type="radio"]):not([type="number"]) {
   width: 100%;
+  max-width: 32em;
+  min-width: 0;
+}
+
+.modal .form-group textarea {
+  width: 100%;
+  max-width: none;
   min-width: 0;
 }
 
@@ -435,18 +446,11 @@
 
 .table td input.table-input {
   width: 100%;
-  min-width: 5em;
-  padding: var(--space-sm);
-  box-sizing: border-box;
-  border: 1px solid var(--border-input);
-  border-radius: var(--radius);
-  background: var(--bg-input);
-  color: inherit;
-  font-size: inherit;
+  min-width: 8em;
 }
 
 .table td input.table-input--wide {
-  min-width: 12em;
+  min-width: 14em;
 }
 
 /* ---------- 弹窗（可单独用或放在 .modal-backdrop 内居中） ---------- */
@@ -563,13 +567,7 @@
   min-height: 200px;
   font-family: ui-monospace, monospace;
   font-size: 0.875rem;
-  padding: var(--space-sm);
-  box-sizing: border-box;
   margin: var(--space-sm) 0;
-  border: 1px solid var(--border-input);
-  border-radius: var(--radius);
-  background: var(--bg-input);
-  color: inherit;
   resize: vertical;
 }
 
@@ -578,13 +576,7 @@
   min-height: 120px;
   font-family: ui-monospace, monospace;
   font-size: 0.875rem;
-  padding: var(--space-sm);
-  box-sizing: border-box;
   margin: var(--space-sm) 0;
-  border: 1px solid var(--border-input);
-  border-radius: var(--radius);
-  background: var(--bg-input);
-  color: inherit;
   resize: vertical;
 }
 

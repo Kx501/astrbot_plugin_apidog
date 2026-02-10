@@ -45,6 +45,7 @@ export default function Config() {
             max={65535}
             value={Number(data?.api_port ?? 5787)}
             onChange={(e) => setData({ ...data, api_port: Number(e.target.value) || 5787 })}
+            placeholder="5787"
           />
           <p className="muted">修改后需重载插件或重启 API 进程生效。</p>
         </div>
@@ -54,6 +55,7 @@ export default function Config() {
             type="number"
             value={Number(data?.timeout_seconds ?? 30)}
             onChange={(e) => setData({ ...data, timeout_seconds: Number(e.target.value) })}
+            placeholder="30"
           />
         </div>
       </section>
@@ -94,6 +96,7 @@ export default function Config() {
                   .filter((n) => !Number.isNaN(n)),
               })
             }
+            placeholder="500, 502, 503, 429"
           />
         </div>
       </section>

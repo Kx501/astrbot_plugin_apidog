@@ -59,23 +59,26 @@ export default function Schedules() {
             <tr key={i}>
               <td>
                 <input
-                  className="table-input"
+                  className="table-input table-input--wide"
                   value={String(row.api_key ?? "")}
                   onChange={(e) => update(i, "api_key", e.target.value)}
+                  placeholder="接口 command 或 id"
                 />
               </td>
               <td>
                 <input
-                  className="table-input"
+                  className="table-input table-input--wide"
                   value={String(row.cron ?? "")}
                   onChange={(e) => update(i, "cron", e.target.value)}
+                  placeholder="0 9 * * *"
                 />
               </td>
               <td>
                 <input
-                  className="table-input"
+                  className="table-input table-input--wide"
                   value={String(row.target_session ?? "")}
                   onChange={(e) => update(i, "target_session", e.target.value)}
+                  placeholder="可选"
                 />
               </td>
               <td>
