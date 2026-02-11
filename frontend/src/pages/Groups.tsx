@@ -115,7 +115,7 @@ export default function Groups() {
         <button type="button" onClick={() => addRow(setUserRows)}>新增用户组</button>
         <button type="button" onClick={() => addRow(setGroupRows)}>新增群组</button>
         <button onClick={handleSave} disabled={saving}>
-          {saving ? "保存中…" : "保存"}
+          {saving ? "保存中…" : "保存当前页"}
         </button>
         <button
           type="button"
@@ -133,7 +133,7 @@ export default function Groups() {
             setRawJsonOpen(true);
           }}
         >
-          编辑原始 JSON
+          编辑 JSON
         </button>
       </div>
       <section className="page-section">
@@ -229,7 +229,7 @@ export default function Groups() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h3 id="groups-raw-title">编辑原始 JSON</h3>
+              <h3 id="groups-raw-title">编辑 JSON</h3>
               <button type="button" className="modal-close" onClick={() => setRawJsonOpen(false)} aria-label="关闭">×</button>
             </div>
             <textarea

@@ -42,7 +42,7 @@ export default function Schedules() {
       <div className="button-row">
         <button onClick={add}>新增</button>
         <button onClick={handleSave} disabled={saving}>
-          {saving ? "保存中…" : "保存"}
+          {saving ? "保存中…" : "保存当前页"}
         </button>
       </div>
       <table className="table">

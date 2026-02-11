@@ -71,8 +71,18 @@ export default function Apis() {
     const next = [...list];
     next[editIndex] = editRow;
     setList(next);
-    setEditIndex(null);
     setJsonError(null);
+    setSaving(true);
+    setError(null);
+    putApis(next)
+      .then(() => {
+        setSaving(false);
+        setEditIndex(null);
+      })
+      .catch((e) => {
+        setError(String(e));
+        setSaving(false);
+      });
   };
   const remove = (index: number) => {
     setList(list.filter((_, i) => i !== index));
@@ -454,8 +464,10 @@ export default function Apis() {
             </div>
           </div>
       <div className="button-row">
-        <button onClick={applyEdit}>应用</button>
-        <button onClick={closeEdit}>取消</button>
+        <button onClick={applyEdit} disabled={saving}>
+          {saving ? "保存中…" : "保存并重载"}
+        </button>
+        <button onClick={closeEdit} disabled={saving}>取消</button>
       </div>
     </>
   );
@@ -468,7 +480,7 @@ export default function Apis() {
       <div className="button-row">
         <button onClick={addNew}>新增接口</button>
         <button onClick={handleSaveAll} disabled={saving}>
-          {saving ? "保存中…" : "保存全部"}
+          {saving ? "保存中…" : "保存当前页"}
         </button>
       </div>
       <table className="table">
