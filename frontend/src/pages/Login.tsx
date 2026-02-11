@@ -23,25 +23,27 @@ export default function Login() {
   };
 
   return (
-    <div className="page page--narrow">
-      <h2>配置管理登录</h2>
-      <p className="muted">请输入本次启动时控制台/日志中显示的「Config API 临时密码」。</p>
-      {error && <p className="error">{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>临时密码</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="从启动日志复制"
-            autoFocus
-          />
-        </div>
-        <button type="submit" disabled={loading}>
-          {loading ? "验证中…" : "登录"}
-        </button>
-      </form>
+    <div className="page page--narrow page--login">
+      <div className="login-card">
+        <h2 className="login-title">配置管理登录</h2>
+        <p className="muted">请输入本次启动时控制台/日志中显示的「Config API 临时密码」。</p>
+        {error && <p className="error">{error}</p>}
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label>临时密码</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="从启动日志复制"
+              autoFocus
+            />
+          </div>
+          <button type="submit" disabled={loading} className="login-submit">
+            {loading ? "验证中…" : "登录"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

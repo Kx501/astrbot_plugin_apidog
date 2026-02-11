@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import threading
 import tempfile
 from pathlib import Path
@@ -48,7 +49,7 @@ class ApiDogStar(Star):
             self._uvicorn_server.should_exit = True
             thread = getattr(self, "_uvicorn_thread", None)
             if thread is not None and thread.is_alive():
-                thread.join(timeout=3.0)
+                await asyncio.to_thread(thread.join, timeout=3.0)
 
     def _result_to_chain(self, result: CallResult) -> tuple[List[Any], List[str]]:
         """Build AstrBot message chain from CallResult; second return is list of temp file paths to delete after send."""
@@ -92,69 +93,37 @@ class ApiDogStar(Star):
             for p in tmp_paths:
                 Path(p).unlink(missing_ok=True)
 
-    @filter.command("api")
-    async def cmd_api(self, event: AstrMessageEvent) -> None:
-        """通过接口名调用配置的 API。用法: /api <接口名> [参数...]，例如 /api 天气 北京"""
-        raw = event.message_str.strip()
-        for prefix in ("/api ", "/api\t", "api ", "api\t"):
-            if raw.startswith(prefix):
-                raw = raw[len(prefix) :].strip()
-                break
-        if raw.startswith("/api") and len(raw) > 4:
-            raw = raw[4:].strip()
-        if not raw:
-            yield event.plain_result("用法: /api <接口名> [参数...]，例如 /api 天气 北京")
-            return
-
-        try:
-            user_id = str(event.get_sender_id())
-        except Exception:
-            user_id = None
-        try:
-            gid = event.get_group_id()
-            group_id = str(gid) if gid is not None else None
-        except Exception:
-            group_id = None
-        ctx = CallContext(user_id=user_id, group_id=group_id)
-
-        extra_config: dict[str, Any] | None = None
-        try:
-            cfg = self.context.cfg_get("apidog")
-            if isinstance(cfg, dict):
-                extra_config = cfg
-        except Exception:
-            pass
-
-        result = await run(self._data_dir, raw, ctx, extra_config)
-
+    async def _run_and_send(
+        self,
+        event: AstrMessageEvent,
+        raw_args: str,
+        ctx: CallContext,
+        extra_config: dict[str, Any] | None,
+    ):
+        """Run API with raw_args and yield message results to event. Shared by /api and generated commands."""
+        result = await run(self._data_dir, raw_args, ctx, extra_config)
         if not result.success:
             yield event.plain_result(result.message)
             return
-
         if result.result_type == "text":
             yield event.plain_result(result.message)
             return
-
-        # 媒体：优先 URL，否则用 media_bytes（写临时文件后发）
         if result.media_url:
             if result.result_type == "image":
                 yield event.image_result(result.media_url)
                 return
             if result.result_type == "video":
                 try:
-
                     yield event.chain_result([Video.fromURL(url=result.media_url)])
                 except Exception:
                     yield event.plain_result(f"视频链接: {result.media_url}")
                 return
             if result.result_type == "audio":
                 try:
-
                     yield event.chain_result([Record(url=result.media_url)])
                 except Exception:
                     yield event.plain_result(f"音频链接: {result.media_url}")
                 return
-
         if result.media_bytes and result.result_type in ("image", "video", "audio"):
             suffix = ".jpg"
             if result.media_content_type:
@@ -180,5 +149,39 @@ class ApiDogStar(Star):
             except Exception:
                 yield event.plain_result("媒体内容已收到，但当前平台暂不支持从字节发送。")
             return
-
         yield event.plain_result(result.message)
+
+    @filter.command("api")
+    async def cmd_api(self, event: AstrMessageEvent) -> None:
+        """通过接口名调用配置的 API。用法: /api <接口名> [参数...]，例如 /api 天气 北京"""
+        raw = event.message_str.strip()
+        for prefix in ("/api ", "/api\t", "api ", "api\t"):
+            if raw.startswith(prefix):
+                raw = raw[len(prefix):].strip()
+                break
+        if not raw:
+            yield event.plain_result("用法: /api <接口名> [参数...]，例如 /api 天气 北京")
+            return
+        try:
+            user_id = str(event.get_sender_id())
+        except Exception:
+            user_id = None
+        try:
+            gid = event.get_group_id()
+            group_id = str(gid) if gid is not None else None
+        except Exception:
+            group_id = None
+        ctx = CallContext(user_id=user_id, group_id=group_id)
+        extra_config = None
+        try:
+            cfg = self.context.cfg_get("apidog")
+            if isinstance(cfg, dict):
+                extra_config = cfg
+        except Exception:
+            pass
+        async for x in self._run_and_send(event, raw, ctx, extra_config):
+            yield x
+
+    # --- BEGIN GENERATED COMMANDS ---
+    pass
+    # --- END GENERATED COMMANDS ---

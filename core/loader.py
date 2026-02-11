@@ -151,7 +151,13 @@ def load_config(data_dir: Path) -> dict[str, Any]:
         retry_statuses = frozenset(codes) if codes else DEFAULT_RETRY_STATUSES
     else:
         retry_statuses = DEFAULT_RETRY_STATUSES
-    out = {"timeout_seconds": timeout_seconds, "retry": retry, "retry_statuses": retry_statuses}
+    register_commands = bool(raw.get("register_commands", False))
+    out = {
+        "timeout_seconds": timeout_seconds,
+        "retry": retry,
+        "retry_statuses": retry_statuses,
+        "register_commands": register_commands,
+    }
     _cache_set(data_dir, "config", out)
     return out
 

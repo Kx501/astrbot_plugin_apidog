@@ -267,6 +267,66 @@
   margin: var(--space-xl) auto;
 }
 
+/* 配置页：输入框不占满整行 */
+.page--config .form-group input:not([type="checkbox"]):not([type="radio"]) {
+  width: auto;
+}
+.page--config .form-group input[type="number"] {
+  max-width: 10em;
+}
+.page--config .form-group input[type="text"] {
+  max-width: 32em;
+}
+
+/* 表单项内警告（如独立指令风险提示） */
+.form-warning {
+  margin: var(--space-sm) 0 0 0;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--bg-accordion-head);
+  border: 1px solid var(--error);
+  border-radius: var(--radius);
+  max-width: 520px;
+}
+
+/* ---------- 登录页 ---------- */
+.page--login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.login-card {
+  width: 100%;
+  padding: var(--space-xl);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.login-title {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.login-form {
+  margin-top: var(--space-lg);
+}
+
+.login-form .form-group {
+  margin-bottom: var(--space-md);
+}
+
+.login-submit {
+  margin-top: var(--space-sm);
+  padding: 0.5rem 1.5rem;
+  min-width: 6em;
+}
+
 /* ---------- 表单（非弹窗）：输入框适中宽度 ---------- */
 .form-group {
   margin-bottom: var(--space-md);

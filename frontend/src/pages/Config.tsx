@@ -32,7 +32,7 @@ export default function Config() {
 
   if (loading) return <p>加载中…</p>;
   return (
-    <div className="page">
+    <div className="page page--config">
       <h2>全局配置 <span className="field-origin">(config.json)</span></h2>
       {error && <p className="error">{error}</p>}
       <section className="page-section">
@@ -57,6 +57,24 @@ export default function Config() {
             onChange={(e) => setData({ ...data, timeout_seconds: Number(e.target.value) })}
             placeholder="30"
           />
+        </div>
+      </section>
+      <section className="page-section">
+        <h3>AstrBot</h3>
+        <div className="form-group">
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={Boolean(data?.register_commands)}
+              onChange={(e) =>
+                setData({ ...data, register_commands: e.target.checked })
+              }
+            />
+            <span className="toggle__track" aria-hidden="true" />
+            独立指令 <span className="field-origin">(register_commands)</span>
+          </label>
+          <p className="muted">开启后，每个接口将注册为独立指令（如 /天气）。保存后生成代码，需在 AstrBot 中手动重载插件后生效。</p>
+          <p className="form-warning">因此功能，本插件存在安全风险：将根据配置动态生成并加载 Python 代码，若配置或数据目录被篡改、写入恶意代码，可能导致任意代码执行。请仅在可信环境中启用。</p>
         </div>
       </section>
       <section className="page-section">

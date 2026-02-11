@@ -1,7 +1,7 @@
 name: astrbot_plugin_apidog
 display_name: ApiDog
-version: "1.0.2"
+version: "1.1.0"
 author: "Kx501"
-desc: 可配置的 API Web 管理平台，通过指令调用 API。支持占位符、认证与权限，计划任务与媒体类型数据。
+desc: 低代码 API Web 管理平台。可视化配置任意 API 并自动绑定指令。支持媒体类数据，支持占位符、限流、认证、权限、计划任务等。
 repo: "https://github.com/Kx501/astrbot_plugin_apidog"
-tags: ["api", "管理"]
+tags: ["api", "管理", "低代码"]

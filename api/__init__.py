@@ -17,12 +17,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import APIRouter
 
 from ..core import loader
+from ..core.command_gen import inject_commands_into_main
 from ..core.log_helper import logger
 from ..runtime import scheduler as scheduler_mod
 
 _ALLOWED_FILES = frozenset({"config.json", "apis.json", "schedules.json", "groups.json", "auth.json"})
 
 _PROJECT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+_MAIN_PY_PATH = Path(__file__).resolve().parent.parent / "main.py"
 
 
 def create_app(data_dir: Path | None = None) -> FastAPI:
@@ -115,6 +117,13 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail="Body must be a JSON object")
         _write_json_atomic(path, body)
         loader.invalidate_config(data_dir)
+        try:
+            apis = loader.load_apis(data_dir)
+            inject_commands_into_main(
+                _MAIN_PY_PATH, apis, bool(body.get("register_commands", False))
+            )
+        except Exception:
+            logger.exception("Failed to inject commands into main after PUT config")
         return {"status": "ok"}
 
     @router.get("/apis")
@@ -139,6 +148,13 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail="Invalid path")
         _write_json_atomic(path, {"apis": body["apis"]})
         loader.invalidate_apis(data_dir)
+        try:
+            cfg = loader.load_config(data_dir)
+            inject_commands_into_main(
+                _MAIN_PY_PATH, body["apis"], bool(cfg.get("register_commands", False))
+            )
+        except Exception:
+            logger.exception("Failed to inject commands into main after PUT apis")
         return {"status": "ok"}
 
     @router.get("/schedules")
