@@ -129,7 +129,7 @@ export default function Auth() {
       <div className="button-row">
         <button onClick={add}>新增条目</button>
         <button onClick={handleSave} disabled={saving}>
-          {saving ? "保存中…" : "保存"}
+          {saving ? "保存中…" : "保存当前页"}
         </button>
         <button
           type="button"
@@ -138,7 +138,7 @@ export default function Auth() {
             setRawJsonOpen(true);
           }}
         >
-          编辑原始 JSON
+          编辑 JSON
         </button>
       </div>
       <table className="table">
@@ -251,7 +251,7 @@ export default function Auth() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h3 id="auth-raw-title">编辑原始 JSON</h3>
+              <h3 id="auth-raw-title">编辑 JSON</h3>
               <button type="button" className="modal-close" onClick={() => setRawJsonOpen(false)} aria-label="关闭">×</button>
             </div>
             <textarea

@@ -102,7 +102,7 @@ export default function Config() {
       </section>
       <div className="button-row">
         <button onClick={handleSave} disabled={saving}>
-          {saving ? "保存中…" : "保存"}
+          {saving ? "保存中…" : "保存当前页"}
         </button>
       </div>
     </div>
