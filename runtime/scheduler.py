@@ -134,6 +134,21 @@ def start_scheduler(data_dir: Path, send_message: SendMessageFn | None = None) -
     _started = True
 
 
+def stop_scheduler() -> None:
+    """Stop the scheduler and clear state. Call on plugin unload."""
+    global _scheduler, _started, _data_dir, _send_message
+    if _scheduler is not None:
+        try:
+            _scheduler.shutdown(wait=False)
+            logger.info("ApiDog 调度器已停止")
+        except Exception:
+            logger.exception("Scheduler shutdown error")
+        _scheduler = None
+    _started = False
+    _data_dir = None
+    _send_message = None
+
+
 def reload_schedules(data_dir: Path) -> None:
     """Reload schedules.json and refresh cron jobs. Safe to call after PUT /api/schedules."""
     global _scheduler, _started, _data_dir

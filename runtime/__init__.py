@@ -5,6 +5,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .scheduler import start_scheduler
+from .scheduler import start_scheduler, stop_scheduler
 
-__all__ = ["start_scheduler"]
+__all__ = ["start_scheduler", "stop_scheduler"]

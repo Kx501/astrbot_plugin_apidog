@@ -19,7 +19,7 @@ from .api import create_app
 from .core import CallContext, CallResult, run
 from .core.loader import get_api_port
 from .core.log_helper import set_apidog_logger
-from .runtime import start_scheduler
+from .runtime import start_scheduler, stop_scheduler
 
 
 @register(
@@ -44,12 +44,14 @@ class ApiDogStar(Star):
         self._uvicorn_thread.start()
 
     async def terminate(self) -> None:
-        """Plugin unload: stop uvicorn to release the configured API port."""
+        """Plugin unload: stop scheduler and uvicorn."""
+        stop_scheduler()
         if getattr(self, "_uvicorn_server", None) is not None:
             self._uvicorn_server.should_exit = True
             thread = getattr(self, "_uvicorn_thread", None)
             if thread is not None and thread.is_alive():
                 await asyncio.to_thread(thread.join, timeout=3.0)
+        _ab_logger.info("ApiDog 服务已停止")
 
     def _result_to_chain(self, result: CallResult) -> tuple[List[Any], List[str]]:
         """Build AstrBot message chain from CallResult; second return is list of temp file paths to delete after send."""

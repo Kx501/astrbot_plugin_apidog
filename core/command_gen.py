@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .log_helper import logger
+
 _BEGIN_MARKER = "# --- BEGIN GENERATED COMMANDS ---"
 _END_MARKER = "# --- END GENERATED COMMANDS ---"
 
@@ -35,10 +37,12 @@ def _build_main_class_methods(apis: list[dict[str, Any]]) -> str:
         cmd_esc = _escape(cmd_name)
         api_key_esc = _escape(api_key)
         method = _safe_method_name(i)
+        desc = (api.get("description") or "").strip().replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ").replace("\r", " ")
         lines.append(f'    @filter.command("{cmd_esc}")')
         lines.append(f"    async def {method}(self, event):")
+        lines.append(f'        """{desc}"""')
         lines.append("        raw = event.message_str.strip()")
-        lines.append(f'        for prefix in ("/{cmd_esc} ", "/{cmd_esc}\\t", "{cmd_esc} ", "{cmd_esc}\\t"):')
+        lines.append(f'        for prefix in ("/{cmd_esc} ", "{cmd_esc} "):')
         lines.append("            if raw.startswith(prefix):")
         lines.append("                raw = raw[len(prefix):].strip()")
         lines.append("                break")
@@ -114,3 +118,4 @@ def inject_commands_into_main(
     if cache_dir.is_dir():
         for f in cache_dir.glob("main.*.pyc"):
             f.unlink(missing_ok=True)
+    logger.info("独立指令已注入 main.py，请手动完成插件重载")
