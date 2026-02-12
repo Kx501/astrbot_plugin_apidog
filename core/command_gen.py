@@ -72,6 +72,24 @@ def _build_main_class_methods(apis: list[dict[str, Any]]) -> str:
     return "\n".join(lines) if lines else "    pass"
 
 
+def block_content_is_pass(main_path: Path) -> bool:
+    """True if the GENERATED COMMANDS block contains only 'pass' (e.g. first load after update)."""
+    if not main_path.is_file():
+        return False
+    text = main_path.read_text(encoding="utf-8")
+    begin = "    " + _BEGIN_MARKER
+    end = "    " + _END_MARKER
+    pattern = re.compile(
+        re.escape(begin) + r"(.*?)" + re.escape(end),
+        re.DOTALL,
+    )
+    m = pattern.search(text)
+    if not m:
+        return False
+    inner = m.group(1).strip()
+    return inner == "pass"
+
+
 def inject_commands_into_main(
     main_path: Path,
     apis: list[dict[str, Any]],

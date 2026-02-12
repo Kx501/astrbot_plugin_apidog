@@ -17,8 +17,9 @@ from astrbot.api.message_components import Image, Plain, Record, Video
 
 from .api import create_app
 from .core import CallContext, CallResult, run
-from .core.loader import get_api_port
+from .core.loader import get_api_port, load_apis, load_config
 from .core.log_helper import set_apidog_logger
+from .core.command_gen import block_content_is_pass, inject_commands_into_main
 from .runtime import start_scheduler, stop_scheduler
 
 
@@ -42,6 +43,17 @@ class ApiDogStar(Star):
         self._uvicorn_server = uvicorn.Server(config)
         self._uvicorn_thread = threading.Thread(target=self._uvicorn_server.run, daemon=True)
         self._uvicorn_thread.start()
+        main_path = Path(__file__).resolve()
+        if block_content_is_pass(main_path):
+            try:
+                apis = load_apis(self._data_dir)
+                config = load_config(self._data_dir)
+                inject_commands_into_main(
+                    main_path, apis, bool(config.get("register_commands", False))
+                )
+                _ab_logger.info("已根据配置写回独立指令到 main.py，重载插件后生效")
+            except Exception:
+                _ab_logger.exception("首次加载写回独立指令失败")
 
     async def terminate(self) -> None:
         """Plugin unload: stop scheduler and uvicorn."""
