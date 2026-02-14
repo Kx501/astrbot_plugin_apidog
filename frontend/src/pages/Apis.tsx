@@ -34,6 +34,9 @@ export default function Apis() {
   const [openRequest, setOpenRequest] = useState(false);
   const [openRateLimit, setOpenRateLimit] = useState(false);
   const [openPermission, setOpenPermission] = useState(false);
+  const [rawHeaders, setRawHeaders] = useState<string | null>(null);
+  const [rawParams, setRawParams] = useState<string | null>(null);
+  const [rawBody, setRawBody] = useState<string | null>(null);
 
   useEffect(() => {
     getApis()
@@ -60,6 +63,9 @@ export default function Apis() {
     setEditIndex(index);
     setEditRow({ ...list[index] });
     setJsonError(null);
+    setRawHeaders(null);
+    setRawParams(null);
+    setRawBody(null);
     setOpenBasic(true);
     setOpenResponse(false);
     setOpenRequest(true);
@@ -124,13 +130,31 @@ export default function Apis() {
   };
 
   const setJsonField = (key: "headers" | "params" | "body", raw: string) => {
+    if (key === "headers") setRawHeaders(raw);
+    else if (key === "params") setRawParams(raw);
+    else setRawBody(raw);
+    if (key === "body" && raw.trim() === "") {
+      setEditRow({ ...editRow, body: null });
+      setJsonError(null);
+      return;
+    }
     const parsed = safeJsonParse(raw);
     if (parsed === undefined) {
-      setJsonError(`${key} 不是合法 JSON，未应用`);
+      setJsonError(`${key} 不是合法 JSON，保存时将使用上一有效值`);
       return;
     }
     setJsonError(null);
     setEditRow({ ...editRow, [key]: parsed });
+  };
+
+  const jsonDisplayValue = (key: "headers" | "params" | "body"): string => {
+    const raw = key === "headers" ? rawHeaders : key === "params" ? rawParams : rawBody;
+    if (raw !== null) return raw;
+    if (key === "headers") return safeJsonStringify(editRow.headers);
+    if (key === "params") return safeJsonStringify(editRow.params);
+    if (editRow.body === null || editRow.body === undefined) return "";
+    if (typeof editRow.body === "object") return JSON.stringify(editRow.body, null, 2);
+    return String(editRow.body);
   };
 
   const arrToStr = (a: unknown): string =>
@@ -169,17 +193,17 @@ export default function Apis() {
                 />
               </div>
               <div className="form-group">
-                <label>命令 <span className="field-origin">(command)</span></label>
-                <input
-                  value={String(editRow.command ?? "")}
-                  onChange={(e) => setEditRow({ ...editRow, command: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
                 <label>名称 <span className="field-origin">(name)</span></label>
                 <input
                   value={String(editRow.name ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, name: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>命令 <span className="field-origin">(command)</span></label>
+                <input
+                  value={String(editRow.command ?? "")}
+                  onChange={(e) => setEditRow({ ...editRow, command: e.target.value })}
                 />
               </div>
               <div className="form-group">
@@ -263,7 +287,7 @@ export default function Apis() {
                 <label>请求头 <span className="field-origin">(headers)</span> JSON</label>
                 <textarea
                   className="json-edit-sm"
-                  value={safeJsonStringify(editRow.headers)}
+                  value={jsonDisplayValue("headers")}
                   onChange={(e) => setJsonField("headers", e.target.value)}
                 />
               </div>
@@ -271,7 +295,7 @@ export default function Apis() {
                 <label>查询参数 <span className="field-origin">(params)</span> JSON</label>
                 <textarea
                   className="json-edit-sm"
-                  value={safeJsonStringify(editRow.params)}
+                  value={jsonDisplayValue("params")}
                   onChange={(e) => setJsonField("params", e.target.value)}
                 />
               </div>
@@ -279,26 +303,8 @@ export default function Apis() {
                 <label>请求体 <span className="field-origin">(body)</span> JSON</label>
                 <textarea
                   className="json-edit-sm"
-                  value={typeof editRow.body === "object" && editRow.body !== null
-                    ? JSON.stringify(editRow.body, null, 2)
-                    : editRow.body === null || editRow.body === undefined
-                      ? ""
-                      : String(editRow.body)}
-                  onChange={(e) => {
-                    const raw = e.target.value.trim();
-                    if (!raw) {
-                      setEditRow({ ...editRow, body: null });
-                      setJsonError(null);
-                      return;
-                    }
-                    const parsed = safeJsonParse(e.target.value);
-                    if (parsed === undefined) {
-                      setJsonError("body 不是合法 JSON，未应用");
-                      return;
-                    }
-                    setJsonError(null);
-                    setEditRow({ ...editRow, body: parsed });
-                  }}
+                  value={jsonDisplayValue("body")}
+                  onChange={(e) => setJsonField("body", e.target.value)}
                 />
               </div>
             </div>

@@ -198,6 +198,14 @@
     margin: 0;
     max-width: none;
   }
+  .app.sidebar-collapsed .main-inner {
+    padding-left: 3.5rem;
+  }
+
+  .form-group textarea.json-edit-sm,
+  .form-group textarea.json-edit {
+    font-size: 16px;
+  }
 }
 
 /* ---------- 弹窗遮罩（与 .modal 配合复用） ---------- */
@@ -648,6 +656,15 @@
   font-size: 0.875rem;
   margin: var(--space-sm) 0;
   resize: vertical;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+
+.json-edit {
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
 }
 
 /* ---------- 区块分隔（Config、Groups 等） ---------- */
