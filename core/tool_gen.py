@@ -20,10 +20,10 @@ except ImportError:
 
 
 def apis_for_llm_tools(apis: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Return APIs that are enabled and have register_as_llm_tool === true (default off)."""
+    """Return APIs that are enabled and have as_llm_tool === true (default off)."""
     return [
         a for a in apis
-        if a.get("enabled", True) is not False and a.get("register_as_llm_tool", False) is True
+        if a.get("enabled", True) is not False and a.get("as_llm_tool", False) is True
     ]
 
 
@@ -78,7 +78,7 @@ def build_llm_tools(
     module_path: str | None = None,
 ) -> list[Any]:
     """
-    Build a list of AstrBot FunctionTool instances for APIs with register_as_llm_tool true.
+    Build a list of AstrBot FunctionTool instances for APIs with as_llm_tool true.
     run_func should have signature (data_dir, raw_args, context: CallContext, extra_config) -> Awaitable[CallResult].
     module_path is used so the framework can unregister these tools when the plugin is unloaded.
     """

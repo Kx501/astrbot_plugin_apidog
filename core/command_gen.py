@@ -25,11 +25,11 @@ def _safe_method_name(index: int) -> str:
 
 def _build_main_class_methods(apis: list[dict[str, Any]]) -> str:
     """Build the method lines to inject into ApiDogStar (4-space indent for class body).
-    Only includes APIs with enabled !== false and register_as_command === true (default off).
+    Only includes APIs with enabled !== false and as_cmd === true (default off).
     """
     enabled = [
         a for a in apis
-        if a.get("enabled", True) is not False and a.get("register_as_command", False) is True
+        if a.get("enabled", True) is not False and a.get("as_cmd", False) is True
     ]
     lines: list[str] = []
     for i, api in enumerate(enabled):
@@ -97,7 +97,7 @@ def block_content_is_pass(main_path: Path) -> bool:
 
 def inject_commands_into_main(main_path: Path, apis: list[dict[str, Any]]) -> None:
     """Replace the GENERATED COMMANDS block in main.py and clear __pycache__ for main.
-    Only APIs with enabled and register_as_command true get a dedicated command (per-API, default off).
+    Only APIs with enabled and as_cmd true get a dedicated command (per-API, default off).
     """
     if not main_path.is_file():
         return

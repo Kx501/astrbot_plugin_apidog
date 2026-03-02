@@ -103,20 +103,20 @@ export default function Apis() {
   const toggleRegisterAsCommand = (index: number) => {
     const next = [...list];
     const row = next[index] as Record<string, unknown>;
-    next[index] = { ...row, register_as_command: row.register_as_command === true };
+    next[index] = { ...row, as_cmd: row.as_cmd === true };
     setList(next);
   };
   const toggleRegisterAsLlmTool = (index: number) => {
     const next = [...list];
     const row = next[index] as Record<string, unknown>;
-    next[index] = { ...row, register_as_llm_tool: row.register_as_llm_tool === true };
+    next[index] = { ...row, as_llm_tool: row.as_llm_tool === true };
     setList(next);
   };
   const addNew = () => {
     const newRow = {
       enabled: true,
-      register_as_command: false,
-      register_as_llm_tool: false,
+      as_cmd: false,
+      as_llm_tool: false,
       id: "new",
       command: "new",
       name: "新接口",
@@ -496,7 +496,7 @@ export default function Apis() {
   return (
     <div className="page">
       <h2>接口列表 <span className="field-origin">(apis.json)</span></h2>
-      <p className="form-warning" style={{ marginTop: 0 }}>
+      <p className="form-warning" style={{ marginTop: 0, marginBottom: "var(--space-md)" }}>
         开启「独立指令」或「LLM 工具」会按配置执行接口或生成并执行代码，配置与数据被篡改时有安全风险，请仅在可信环境使用。
       </p>
       {error && <p className="error">{error}</p>}
@@ -512,8 +512,8 @@ export default function Apis() {
             <th className="col-command">命令 <span className="field-origin">(command)</span></th>
             <th className="col-name">名称 <span className="field-origin">(name)</span></th>
             <th>启用 <span className="field-origin">(enabled)</span></th>
-            <th>独立指令 <span className="field-origin">(register_as_command)</span></th>
-            <th>LLM 工具 <span className="field-origin">(register_as_llm_tool)</span></th>
+            <th>独立指令 <span className="field-origin">(as_cmd)</span></th>
+            <th>LLM 工具 <span className="field-origin">(as_llm_tool)</span></th>
             <th>操作</th>
           </tr>
         </thead>
@@ -536,7 +536,7 @@ export default function Apis() {
                 <label className="toggle">
                   <input
                     type="checkbox"
-                    checked={row.register_as_command === true}
+                    checked={row.as_cmd === true}
                     onChange={() => toggleRegisterAsCommand(i)}
                   />
                   <span className="toggle__track" aria-hidden="true" />
@@ -546,7 +546,7 @@ export default function Apis() {
                 <label className="toggle">
                   <input
                     type="checkbox"
-                    checked={row.register_as_llm_tool === true}
+                    checked={row.as_llm_tool === true}
                     onChange={() => toggleRegisterAsLlmTool(i)}
                   />
                   <span className="toggle__track" aria-hidden="true" />
