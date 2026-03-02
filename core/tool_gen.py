@@ -162,7 +162,7 @@ def build_llm_tools(
         if not api_key or not isinstance(api_key, str):
             continue
         desc = (api.get("description") or "").strip() or f"调用接口：{api_key}"
-        args_desc = (api.get("args_desc") or api.get("tool_args_desc") or "").strip()
+        args_desc = (api.get("args_desc") or api.get("tool_args_desc") or "无需填写任何内容，留空即可").strip()
         params = {
             "type": "object",
             "properties": {
