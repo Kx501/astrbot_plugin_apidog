@@ -47,7 +47,7 @@ export default function Config() {
             onChange={(e) => setData({ ...data, api_port: Number(e.target.value) || 5787 })}
             placeholder="5787"
           />
-          <p className="muted">保存后生效(自动重载插件，失败需手动重载)</p>
+          <p className="muted">保存后生效（自动重载插件，失败时请在插件管理中重载）</p>
         </div>
         <div className="form-group">
           <label>超时秒数 <span className="field-origin">(timeout_seconds)</span></label>

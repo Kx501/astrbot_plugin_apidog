@@ -136,4 +136,4 @@ def inject_commands_into_main(main_path: Path, apis: list[dict[str, Any]]) -> No
     if cache_dir.is_dir():
         for f in cache_dir.glob("main.*.pyc"):
             f.unlink(missing_ok=True)
-    logger.info("独立指令已注入 main.py，请手动完成插件重载")
+    logger.info("独立指令已注入 main.py（配置页保存后将自动重载）")

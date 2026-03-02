@@ -295,10 +295,10 @@ export default function Apis() {
               </div>
               <div className="form-group">
                 <label>工具参数说明 <span className="field-origin">(args_desc)</span></label>
-                <input
-                  type="text"
+                <textarea
                   value={String(editRow.args_desc ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, args_desc: e.target.value })}
+                  rows={3}
                   placeholder="选填。LLM 工具 args 说明，如：城市名"
                 />
               </div>
