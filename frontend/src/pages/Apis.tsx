@@ -103,13 +103,13 @@ export default function Apis() {
   const toggleRegisterAsCommand = (index: number) => {
     const next = [...list];
     const row = next[index] as Record<string, unknown>;
-    next[index] = { ...row, as_cmd: row.as_cmd === true };
+    next[index] = { ...row, as_cmd: row.as_cmd !== true };
     setList(next);
   };
   const toggleRegisterAsLlmTool = (index: number) => {
     const next = [...list];
     const row = next[index] as Record<string, unknown>;
-    next[index] = { ...row, as_llm_tool: row.as_llm_tool === true };
+    next[index] = { ...row, as_llm_tool: row.as_llm_tool !== true };
     setList(next);
   };
   const addNew = () => {
