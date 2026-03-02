@@ -130,6 +130,7 @@ export default function Apis() {
       response_media_from: "url",
       description: "",
       help_text: "",
+      args_desc: "",
       auth: undefined as string | undefined,
       allowed_user_groups: [] as string[],
       allowed_group_groups: [] as string[],
@@ -290,6 +291,15 @@ export default function Apis() {
                   onChange={(e) => setEditRow({ ...editRow, help_text: e.target.value })}
                   rows={3}
                   placeholder="对用户的提示文案，可选"
+                />
+              </div>
+              <div className="form-group">
+                <label>工具参数说明 <span className="field-origin">(args_desc)</span></label>
+                <input
+                  type="text"
+                  value={String(editRow.args_desc ?? "")}
+                  onChange={(e) => setEditRow({ ...editRow, args_desc: e.target.value })}
+                  placeholder="选填。LLM 工具 args 说明，如：城市名"
                 />
               </div>
             </div>

@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Build LLM function tools from API config (parallel to command_gen for commands)."""
+"""Build LLM function tools from API config (parallel to command_gen for commands).
+
+调用方式：对话中 LLM 决定调用某工具（如 weather）并填入参数 args（如「北京」），
+框架会执行 handler；handler 将 raw_args = api_key + " " + args 交给 run()，
+与用户发「/api 天气 北京」走同一套逻辑，结果返回给 LLM 继续对话。
+"""
 
 from __future__ import annotations
 
@@ -91,12 +96,15 @@ def build_llm_tools(
         if not api_key or not isinstance(api_key, str):
             continue
         desc = (api.get("description") or "").strip() or f"调用接口：{api_key}"
+        args_desc = (api.get("args_desc") or api.get("tool_args_desc") or "").strip()
+        if not args_desc:
+            args_desc = "从用户意图中提取的参数字符串，多个用空格分隔，格式同 /api 接口名 后跟的一段。不填则传空。"
         params = {
             "type": "object",
             "properties": {
                 "args": {
                     "type": "string",
-                    "description": "参数，空格分隔，与 /api 接口名 后跟的参数一致",
+                    "description": args_desc,
                 },
             },
             "required": [],

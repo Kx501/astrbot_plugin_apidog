@@ -28,7 +28,7 @@
 - **响应**：`response_type`（text / image / video / audio）、`response_path`（JSON 取结果路径）、`response_media_from`（url 或 body，body 表示接口直接返回二进制媒体）
 - **认证**：`auth` 或 `auth_ref`（填 auth.json 中某条认证的键名，如 `default`）
 - **权限**：`allowed_user_groups`、`allowed_group_groups`（组在 groups.json 中定义）
-- **说明**：`description`（列表用）、`help_text` / `help`（详情页自定义）
+- **说明**：`description`（列表用）、`help_text` / `help`（详情页自定义）、`args_desc`（工具参数说明，LLM 工具启用时给模型看的 args 说明，选填）
 - **开关**：`enabled`（默认 true）、`as_cmd`（独立指令，默认 false）、`as_llm_tool`（LLM 工具，默认 false）
 - **限流**：`rate_limit`（按 user_id+api_key）、`rate_limit_global`（按 api_key 全局），格式 `{"max": N, "window_seconds": S}`
 - **超时与重试**：`timeout_seconds`、`retry`（false/0 或不配则用 config 默认；对象 `{ "max_attempts": N, "backoff_seconds": S }`）
