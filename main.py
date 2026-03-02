@@ -20,6 +20,7 @@ from .core import CallContext, CallResult, run
 from .core.loader import get_api_port, load_apis, load_config
 from .core.log_helper import set_apidog_logger
 from .core.command_gen import block_content_is_pass, inject_commands_into_main
+from .core.tool_gen import register_apidog_llm_tools
 from .runtime import start_scheduler, stop_scheduler
 
 
@@ -48,12 +49,21 @@ class ApiDogStar(Star):
             try:
                 apis = load_apis(self._data_dir)
                 config = load_config(self._data_dir)
-                inject_commands_into_main(
-                    main_path, apis, bool(config.get("register_commands", False))
-                )
+                inject_commands_into_main(main_path, apis)
                 _ab_logger.info("已根据配置写回独立指令到 main.py，重载插件后生效")
             except Exception:
                 _ab_logger.exception("首次加载写回独立指令失败")
+        try:
+            apis = load_apis(self._data_dir)
+            register_apidog_llm_tools(
+                self.context,
+                self._data_dir,
+                apis,
+                run,
+                module_path=self.__class__.__module__,
+            )
+        except Exception:
+            _ab_logger.exception("注册 ApiDog LLM 工具失败")
 
     async def initialize(self) -> None:
         """注册保存后自动重载当前插件的回调（供配置页 PUT 后调用）。"""

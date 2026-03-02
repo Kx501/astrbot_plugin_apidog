@@ -24,8 +24,13 @@ def _safe_method_name(index: int) -> str:
 
 
 def _build_main_class_methods(apis: list[dict[str, Any]]) -> str:
-    """Build the method lines to inject into ApiDogStar (4-space indent for class body)."""
-    enabled = [a for a in apis if a.get("enabled", True) is not False]
+    """Build the method lines to inject into ApiDogStar (4-space indent for class body).
+    Only includes APIs with enabled !== false and register_as_command === true (default off).
+    """
+    enabled = [
+        a for a in apis
+        if a.get("enabled", True) is not False and a.get("register_as_command", False) is True
+    ]
     lines: list[str] = []
     for i, api in enumerate(enabled):
         cmd_name = api.get("command") or api.get("id") or ""
@@ -90,12 +95,10 @@ def block_content_is_pass(main_path: Path) -> bool:
     return inner == "pass"
 
 
-def inject_commands_into_main(
-    main_path: Path,
-    apis: list[dict[str, Any]],
-    register_enabled: bool,
-) -> None:
-    """Replace the GENERATED COMMANDS block in main.py and clear __pycache__ for main."""
+def inject_commands_into_main(main_path: Path, apis: list[dict[str, Any]]) -> None:
+    """Replace the GENERATED COMMANDS block in main.py and clear __pycache__ for main.
+    Only APIs with enabled and register_as_command true get a dedicated command (per-API, default off).
+    """
     if not main_path.is_file():
         return
     text = main_path.read_text(encoding="utf-8")
@@ -107,10 +110,7 @@ def inject_commands_into_main(
     )
     if not pattern.search(text):
         return
-    if register_enabled:
-        inner = _build_main_class_methods(apis)
-    else:
-        inner = "    pass"
+    inner = _build_main_class_methods(apis)
     block = f"    {_BEGIN_MARKER}\n{inner}\n    {_END_MARKER}"
     new_text = pattern.sub(block, text, count=1)
     if new_text == text:

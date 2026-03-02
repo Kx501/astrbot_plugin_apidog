@@ -134,9 +134,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         loader.invalidate_config(data_dir)
         try:
             apis = loader.load_apis(data_dir)
-            inject_commands_into_main(
-                _MAIN_PY_PATH, apis, bool(body.get("register_commands", False))
-            )
+            inject_commands_into_main(_MAIN_PY_PATH, apis)
             _trigger_plugin_reload(request)
         except Exception:
             logger.exception("Failed to inject commands into main after PUT config")
@@ -166,10 +164,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         _write_json_atomic(path, {"apis": body["apis"]})
         loader.invalidate_apis(data_dir)
         try:
-            cfg = loader.load_config(data_dir)
-            inject_commands_into_main(
-                _MAIN_PY_PATH, body["apis"], bool(cfg.get("register_commands", False))
-            )
+            inject_commands_into_main(_MAIN_PY_PATH, body["apis"])
             _trigger_plugin_reload(request)
         except Exception:
             logger.exception("Failed to inject commands into main after PUT apis")

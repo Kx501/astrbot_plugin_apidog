@@ -47,7 +47,7 @@ export default function Config() {
             onChange={(e) => setData({ ...data, api_port: Number(e.target.value) || 5787 })}
             placeholder="5787"
           />
-          <p className="muted">修改后需重载插件或重启 API 进程生效。</p>
+          <p className="muted">保存后生效(自动重载插件，失败需手动重载)</p>
         </div>
         <div className="form-group">
           <label>超时秒数 <span className="field-origin">(timeout_seconds)</span></label>
@@ -57,24 +57,6 @@ export default function Config() {
             onChange={(e) => setData({ ...data, timeout_seconds: Number(e.target.value) })}
             placeholder="30"
           />
-        </div>
-      </section>
-      <section className="page-section">
-        <h3>AstrBot</h3>
-        <div className="form-group">
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={Boolean(data?.register_commands)}
-              onChange={(e) =>
-                setData({ ...data, register_commands: e.target.checked })
-              }
-            />
-            <span className="toggle__track" aria-hidden="true" />
-            独立指令 <span className="field-origin">(register_commands)</span>
-          </label>
-          <p className="muted">开启后，每个接口将注册为独立指令（如 /天气）。保存后生成代码，需在 AstrBot 中手动重载插件后生效。</p>
-          <p className="form-warning">因此功能，本插件存在安全风险：将根据配置动态生成并加载 Python 代码，若配置或数据目录被篡改、写入恶意代码，可能导致任意代码执行。请仅在可信环境中启用。</p>
         </div>
       </section>
       <section className="page-section">

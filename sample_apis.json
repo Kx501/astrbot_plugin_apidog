@@ -2,6 +2,8 @@
   "apis": [
     {
       "enabled": true,
+      "register_as_command": false,
+      "register_as_llm_tool": false,
       "id": "weather",
       "name": "天气",
       "command": "天气",
@@ -22,6 +24,8 @@
     },
     {
       "enabled": true,
+      "register_as_command": false,
+      "register_as_llm_tool": false,
       "id": "random_image",
       "name": "随机图片",
       "command": "随机图",
@@ -40,6 +44,8 @@
     },
     {
       "enabled": true,
+      "register_as_command": false,
+      "register_as_llm_tool": false,
       "id": "sample_video",
       "name": "示例视频",
       "command": "视频",
@@ -56,6 +62,8 @@
     },
     {
       "enabled": true,
+      "register_as_command": false,
+      "register_as_llm_tool": false,
       "id": "sample_audio",
       "name": "示例音频",
       "command": "音频",
