@@ -3,11 +3,12 @@
 
 调用方式：对话中 LLM 决定调用某工具（如 weather）并填入参数 args（如「北京」），
 框架会执行 handler；handler 将 raw_args = api_key + " " + args 交给 run()，
-与用户发「/api 天气 北京」走同一套逻辑，结果返回给 LLM 继续对话。
+与用户发「/api 天气 北京」走同一套逻辑。若接口返回图片/视频/音频，会通过 send_message 发到当前会话，再返回说明给 LLM。
 """
 
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 from typing import Any, Callable
 
@@ -22,6 +23,14 @@ except ImportError:
     _HAS_ASTRBOT_TOOLS = False
     FunctionTool = None  # type: ignore[misc, assignment]
     ContextWrapper = None  # type: ignore[misc, assignment]
+
+try:
+    from astrbot.api.event import MessageChain
+    from astrbot.api.message_components import Image, Plain, Record, Video
+    _HAS_MESSAGE_COMPONENTS = True
+except ImportError:
+    _HAS_MESSAGE_COMPONENTS = False
+    MessageChain = None  # type: ignore[misc, assignment]
 
 
 def apis_for_llm_tools(apis: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -69,9 +78,57 @@ def _make_handler(data_dir: Path, api_key: str, run_func: Callable[..., Any]) ->
             pass
         call_ctx = CallContext(user_id=user_id, group_id=group_id)
         result = await run_func(data_dir, raw_args, call_ctx, extra_config)
-        if result.success:
+        if not result.success:
+            return result.message or "调用失败"
+        # 文本直接返回给 LLM
+        if result.result_type == "text":
             return result.message or "(无文本返回)"
-        return result.message or "调用失败"
+        # 图片/视频/音频：尝试发到当前会话，再返回说明给 LLM
+        if _HAS_MESSAGE_COMPONENTS and MessageChain is not None:
+            inner = getattr(context, "context", None)
+            event = getattr(inner, "event", None) if inner else None
+            ctx = getattr(inner, "context", None) if inner else None
+            umo = getattr(event, "unified_msg_origin", None) if event else None
+            if umo and ctx and hasattr(ctx, "send_message"):
+                components: list[Any] = []
+                temp_paths: list[str] = []
+                try:
+                    if result.result_type == "image" and result.media_url:
+                        components = [Image.fromURL(url=result.media_url)]
+                    elif result.result_type == "video" and result.media_url:
+                        components = [Video.fromURL(url=result.media_url)]
+                    elif result.result_type == "audio" and result.media_url:
+                        components = [Record(url=result.media_url)]
+                    elif result.media_bytes and result.result_type in ("image", "video", "audio"):
+                        suffix = ".jpg"
+                        if result.media_content_type:
+                            if "png" in (result.media_content_type or ""):
+                                suffix = ".png"
+                            elif "gif" in (result.media_content_type or ""):
+                                suffix = ".gif"
+                            elif "video" in (result.media_content_type or "") or result.result_type == "video":
+                                suffix = ".mp4"
+                            elif "audio" in (result.media_content_type or "") or result.result_type == "audio":
+                                suffix = ".wav"
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as f:
+                            f.write(result.media_bytes)
+                            temp_paths.append(f.name)
+                        if result.result_type == "image":
+                            components = [Image.fromFileSystem(path=temp_paths[0])]
+                        else:
+                            components = [Plain(f"（已收到{result.result_type}媒体）")]
+                    if components:
+                        chain = MessageChain(chain=components)
+                        await ctx.send_message(umo, chain)
+                        for p in temp_paths:
+                            Path(p).unlink(missing_ok=True)
+                        desc = {"image": "图片", "video": "视频", "audio": "音频"}.get(result.result_type, "媒体")
+                        return f"已向用户发送{desc}。"
+                except Exception:
+                    logger.exception("工具发送媒体到会话失败")
+                    for p in temp_paths:
+                        Path(p).unlink(missing_ok=True)
+        return result.message or "接口已返回媒体，请告知用户已发送或请其使用指令重试。"
 
     return handler
 

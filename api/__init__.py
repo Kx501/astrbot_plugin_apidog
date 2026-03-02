@@ -79,14 +79,21 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=500, detail=f"Failed to read {path.name}: {e}") from e
 
     def _trigger_plugin_reload(request: Request) -> None:
-        """若插件注册了 reload_trigger，则在主循环上调度自重载（不阻塞当前请求）。"""
+        """若插件注册了 reload_trigger，则在主循环上调度自重载（不阻塞当前请求）。
+        延迟约 3 秒再重载，避免响应尚未发出时插件被终止导致前端显示保存失败。
+        """
         trigger = getattr(request.app.state, "reload_trigger", None)
         if not trigger:
             return
         try:
             pm, plugin_name, loop = trigger
+
+            async def _delayed_reload() -> None:
+                await asyncio.sleep(3)
+                await pm.reload(plugin_name)
+
             loop.call_soon_threadsafe(
-                lambda: asyncio.ensure_future(pm.reload(plugin_name), loop=loop)
+                lambda: asyncio.ensure_future(_delayed_reload(), loop=loop)
             )
         except Exception:
             logger.exception("调度插件重载失败")
