@@ -35,10 +35,10 @@ class ApiDogStar(Star):
         set_apidog_logger(_ab_logger)
         self._data_dir = Path(StarTools.get_data_dir(None))
         start_scheduler(self._data_dir, send_message=self._send_scheduled_result)
-        api_app = create_app(self._data_dir)
+        self._api_app = create_app(self._data_dir)
         port = get_api_port(self._data_dir)
         config = uvicorn.Config(
-            api_app, host="0.0.0.0", port=port, access_log=False
+            self._api_app, host="0.0.0.0", port=port, access_log=False
         )
         self._uvicorn_server = uvicorn.Server(config)
         self._uvicorn_thread = threading.Thread(target=self._uvicorn_server.run, daemon=True)
@@ -54,6 +54,16 @@ class ApiDogStar(Star):
                 _ab_logger.info("已根据配置写回独立指令到 main.py，重载插件后生效")
             except Exception:
                 _ab_logger.exception("首次加载写回独立指令失败")
+
+    async def initialize(self) -> None:
+        """注册保存后自动重载当前插件的回调（供配置页 PUT 后调用）。"""
+        try:
+            pm = getattr(self.context, "_star_manager", None)
+            if pm is not None and getattr(self, "name", None):
+                loop = asyncio.get_running_loop()
+                self._api_app.state.reload_trigger = (pm, self.name, loop)
+        except Exception:
+            _ab_logger.debug("ApiDog 未设置自动重载回调: %s", exc_info=True)
 
     async def terminate(self) -> None:
         """Plugin unload: stop scheduler and uvicorn."""

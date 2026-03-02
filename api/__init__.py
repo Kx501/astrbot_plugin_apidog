@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import secrets
@@ -77,6 +78,19 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to read {path.name}: {e}") from e
 
+    def _trigger_plugin_reload(request: Request) -> None:
+        """若插件注册了 reload_trigger，则在主循环上调度自重载（不阻塞当前请求）。"""
+        trigger = getattr(request.app.state, "reload_trigger", None)
+        if not trigger:
+            return
+        try:
+            pm, plugin_name, loop = trigger
+            loop.call_soon_threadsafe(
+                lambda: asyncio.ensure_future(pm.reload(plugin_name), loop=loop)
+            )
+        except Exception:
+            logger.exception("调度插件重载失败")
+
     def _write_json_atomic(path: Path, data: Any) -> None:
         base = path.parent
         base.mkdir(parents=True, exist_ok=True)
@@ -106,6 +120,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
 
     @router.put("/config")
     def put_config(
+        request: Request,
         body: dict[str, Any] = Body(...),
         data_dir: Path = Depends(get_data_dir),
         _: None = Depends(require_password),
@@ -122,6 +137,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             inject_commands_into_main(
                 _MAIN_PY_PATH, apis, bool(body.get("register_commands", False))
             )
+            _trigger_plugin_reload(request)
         except Exception:
             logger.exception("Failed to inject commands into main after PUT config")
         return {"status": "ok"}
@@ -135,6 +151,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
 
     @router.put("/apis")
     def put_apis(
+        request: Request,
         body: dict[str, Any] = Body(...),
         data_dir: Path = Depends(get_data_dir),
         _: None = Depends(require_password),
@@ -153,6 +170,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             inject_commands_into_main(
                 _MAIN_PY_PATH, body["apis"], bool(cfg.get("register_commands", False))
             )
+            _trigger_plugin_reload(request)
         except Exception:
             logger.exception("Failed to inject commands into main after PUT apis")
         return {"status": "ok"}
