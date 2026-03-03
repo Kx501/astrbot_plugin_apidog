@@ -70,6 +70,8 @@ def _build_main_class_methods(apis: list[dict[str, Any]]) -> str:
         lines.append("                extra_config = cfg")
         lines.append("        except Exception:")
         lines.append("            pass")
+        lines.append(f'        if raw == "{cmd_esc}":')
+        lines.append('            raw = ""  # 仅指令名无参时，避免框架传入的 message_str 被当作首参')
         lines.append(f'        raw_args = "{api_key_esc}" + (" " + raw if raw else "")')
         lines.append("        async for x in self._run_and_send(event, raw_args, ctx, extra_config):")
         lines.append("            yield x")

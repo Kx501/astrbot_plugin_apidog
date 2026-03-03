@@ -275,6 +275,3 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             return FileResponse(index_path, media_type="text/html")
 
     return app
-
-
-app = create_app()

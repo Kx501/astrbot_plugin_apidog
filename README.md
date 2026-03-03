@@ -49,7 +49,7 @@
 
 - 启用插件后访问 **http://localhost:5787/** 即为配置页（端口可在 config.json 的 `api_port` 修改，改后保存即可生效）。
 - **登录**：每次启动生成新临时密码，在 AstrBot 或控制台日志中查看「Config API 临时密码: xxx」。
-- **后端**：读写 config/apis/schedules/groups/auth；插件启用时自动在配置端口启动。独立运行：`python -m api`（端口与数据目录从 config 读取）或 `uvicorn api.app:app --host 0.0.0.0 --port 5787`（数据目录为项目根下 **data**）。
+- **后端**：读写 config/apis/schedules/groups/auth；插件启用时自动在配置端口启动。独立运行：`python -m api`（端口与数据目录从 config 读取）（数据目录为项目根下 **data**；不推荐直接用 `uvicorn api.app:app`，因无模块级 app）。
 - **改前端**：在 `frontend/` 下执行 `npm install && npm run build`，将 `dist` 提交或覆盖到插件中。
 
 ## 项目结构
