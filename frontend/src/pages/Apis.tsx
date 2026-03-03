@@ -462,7 +462,7 @@ export default function Apis() {
             </div>
           </div>
           <div className={`accordion-section ${openPermission ? "open" : ""}`}>
-            <div className="accordion-head" onClick={() => setOpenPermission(!openPermission)}>权限</div>
+            <div className="accordion-head" onClick={() => setOpenPermission(!openPermission)}>权限与认证</div>
             <div className="accordion-body">
               <div className="form-group">
                 <label>认证 <span className="field-origin">(auth / auth_ref)</span> auth.json 中的键名</label>

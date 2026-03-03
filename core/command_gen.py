@@ -79,7 +79,7 @@ def _build_main_class_methods(apis: list[dict[str, Any]]) -> str:
     return "\n".join(lines) if lines else "    pass"
 
 
-def _get_current_block_inner(main_path: Path) -> str | None:
+def _current_block_inner(main_path: Path) -> str | None:
     """Return the current content between BEGIN and END markers, or None if block missing."""
     if not main_path.is_file():
         return None
@@ -98,7 +98,7 @@ def _get_current_block_inner(main_path: Path) -> str | None:
 
 def block_content_is_pass(main_path: Path) -> bool:
     """True if the GENERATED COMMANDS block contains only 'pass' (e.g. first load after update)."""
-    inner = _get_current_block_inner(main_path)
+    inner = _current_block_inner(main_path)
     return inner is not None and inner.strip() == "pass"
 
 
@@ -146,12 +146,10 @@ def inject_commands_into_main(main_path: Path, apis: list[dict[str, Any]]) -> No
     logger.info("独立指令已注入 main.py（配置页保存后将自动重载）")
 
 
-def inject_commands_into_main_if_changed(
-    main_path: Path, apis: list[dict[str, Any]]
-) -> bool:
-    """Inject only when the generated block content actually changed. Returns True if injected (and caller should reload)."""
+def inject_commands_if_changed(main_path: Path, apis: list[dict[str, Any]]) -> bool:
+    """Inject only when the generated block content actually changed. Returns True if injected (caller should reload)."""
     new_inner = _build_main_class_methods(apis)
-    current_inner = _get_current_block_inner(main_path)
+    current_inner = _current_block_inner(main_path)
     if current_inner is not None and current_inner.strip() == new_inner.strip():
         return False
     inject_commands_into_main(main_path, apis)
