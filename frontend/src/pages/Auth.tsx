@@ -144,9 +144,9 @@ export default function Auth() {
       <table className="table">
         <thead>
           <tr>
-            <th>名称</th>
+            <th>名称 <span className="field-origin">(name)</span></th>
             <th>类型 <span className="field-origin">(type)</span></th>
-            <th>参数</th>
+            <th>参数 <span className="field-origin">(token / header+value / username+password)</span></th>
             <th>操作</th>
           </tr>
         </thead>
@@ -162,9 +162,9 @@ export default function Auth() {
               </td>
               <td>
                 <select
+                  className="auth-type-select"
                   value={e.type}
                   onChange={(ev) => update(i, "type", ev.target.value as AuthEntry["type"])}
-                  style={{ padding: "0.35rem", minWidth: "8em" }}
                 >
                   <option value="bearer">bearer</option>
                   <option value="api_key">api_key</option>
@@ -174,6 +174,7 @@ export default function Auth() {
               <td>
                 {e.type === "bearer" && (
                   <input
+                    type="password"
                     className="table-input table-input--wide"
                     placeholder="token"
                     value={e.token ?? ""}
@@ -181,7 +182,7 @@ export default function Auth() {
                   />
                 )}
                 {e.type === "api_key" && (
-                  <span style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+                  <span className="auth-params">
                     <input
                       className="table-input"
                       placeholder="header 名"
@@ -190,24 +191,27 @@ export default function Auth() {
                       style={{ width: "8em" }}
                     />
                     <input
+                      type="password"
                       className="table-input table-input--wide"
                       placeholder="value"
                       value={e.value ?? ""}
                       onChange={(ev) => update(i, "value", ev.target.value)}
                     />
-                    <span style={{ display: "block", marginBottom: "0.25rem" }}>query</span>
-                    <label className="toggle">
-                      <input
-                        type="checkbox"
-                        checked={e.inQuery ?? false}
-                        onChange={(ev) => update(i, "inQuery", ev.target.checked)}
-                      />
-                      <span className="toggle__track" aria-hidden="true" />
-                    </label>
+                    <span className="auth-params-query">
+                      <span>query</span>
+                      <label className="toggle">
+                        <input
+                          type="checkbox"
+                          checked={e.inQuery ?? false}
+                          onChange={(ev) => update(i, "inQuery", ev.target.checked)}
+                        />
+                        <span className="toggle__track" aria-hidden="true" />
+                      </label>
+                    </span>
                   </span>
                 )}
                 {e.type === "basic" && (
-                  <span style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <span className="auth-params">
                     <input
                       className="table-input"
                       placeholder="username"
@@ -227,7 +231,9 @@ export default function Auth() {
                 )}
               </td>
               <td>
-                <button onClick={() => remove(i)}>删除</button>
+                <span className="button-group">
+                  <button onClick={() => remove(i)}>删除</button>
+                </span>
               </td>
             </tr>
           ))}
@@ -244,7 +250,7 @@ export default function Auth() {
           aria-label="关闭"
         >
           <div
-            className="modal"
+            className="modal modal--auth-json"
             role="dialog"
             aria-modal="true"
             aria-labelledby="auth-raw-title"
@@ -254,12 +260,17 @@ export default function Auth() {
               <h3 id="auth-raw-title">编辑 JSON</h3>
               <button type="button" className="modal-close" onClick={() => setRawJsonOpen(false)} aria-label="关闭">×</button>
             </div>
-            <textarea
-              className="json-edit"
-              value={raw}
-              onChange={(ev) => setRaw(ev.target.value)}
-              rows={12}
-            />
+            <div className="accordion-section open">
+              <div className="accordion-head">JSON 内容</div>
+              <div className="accordion-body">
+                <textarea
+                  className="json-edit json-edit--modal"
+                  value={raw}
+                  onChange={(ev) => setRaw(ev.target.value)}
+                  rows={12}
+                />
+              </div>
+            </div>
             <div className="button-row">
               <button onClick={handleSaveRaw} disabled={saving}>
                 从 JSON 保存

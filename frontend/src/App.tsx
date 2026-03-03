@@ -24,7 +24,7 @@ function ScrollToTop() {
 }
 
 const LINKS = [
-  { to: "/", label: "配置总览", short: "配" },
+  { to: "/", label: "全局配置", short: "全" },
   { to: "/apis", label: "接口列表", short: "接" },
   { to: "/schedules", label: "计划任务", short: "计" },
   { to: "/groups", label: "用户/群组", short: "组" },
@@ -69,9 +69,10 @@ export default function App() {
             className="sidebar__toggle"
             onClick={toggleSidebar}
             aria-label={sidebarCollapsed ? "展开侧栏" : "折叠侧栏"}
-            title={sidebarCollapsed ? "展开" : "折叠"}
+            title={sidebarCollapsed ? "展开侧栏" : "折叠侧栏"}
           >
-            {sidebarCollapsed ? "\u203A" : "\u2039"}
+            <span className="sidebar-nav__full">{sidebarCollapsed ? "展开" : "折叠"}</span>
+            <span className="sidebar-nav__short">{sidebarCollapsed ? "展" : "折"}</span>
           </button>
         </div>
         <nav className="sidebar-nav">

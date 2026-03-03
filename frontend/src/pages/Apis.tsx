@@ -258,13 +258,6 @@ export default function Apis() {
                 </select>
               </div>
               <div className="form-group">
-                <label>响应路径 <span className="field-origin">(response_path)</span></label>
-                <input
-                  value={String(editRow.response_path ?? "")}
-                  onChange={(e) => setEditRow({ ...editRow, response_path: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
                 <label>媒体来源 <span className="field-origin">(response_media_from)</span></label>
                 <select
                   value={String(editRow.response_media_from ?? "url")}
@@ -274,6 +267,13 @@ export default function Apis() {
                     <option key={v} value={v}>{v}</option>
                   ))}
                 </select>
+              </div>
+              <div className="form-group">
+                <label>响应路径 <span className="field-origin">(response_path)</span></label>
+                <input
+                  value={String(editRow.response_path ?? "")}
+                  onChange={(e) => setEditRow({ ...editRow, response_path: e.target.value })}
+                />
               </div>
               <div className="form-group">
                 <label>描述 <span className="field-origin">(description)</span></label>
@@ -563,8 +563,10 @@ export default function Apis() {
                 </label>
               </td>
               <td>
-                <button onClick={() => startEdit(i)}>编辑</button>
-                <button onClick={() => remove(i)} style={{ marginLeft: 4 }}>删除</button>
+                <span className="button-group">
+                  <button onClick={() => startEdit(i)}>编辑</button>
+                  <button onClick={() => remove(i)}>删除</button>
+                </span>
               </td>
             </tr>
           ))}

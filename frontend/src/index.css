@@ -34,6 +34,7 @@
   --nav-active: #646cff;
   --nav-active-text: #fff;
   --btn-bg: #1a1a1a;
+  --btn-border: transparent;
   --btn-border-hover: #646cff;
   --error: #f66;
   --accordion-arrow: #999;
@@ -60,7 +61,8 @@
     --link-hover: #747bff;
     --nav-active: #646cff;
     --nav-active-text: #fff;
-    --btn-bg: #f9f9f9;
+    --btn-bg: #f0f0f0;
+    --btn-border: #ccc;
     --btn-border-hover: #646cff;
     --error: #c33;
     --accordion-arrow: #666;
@@ -74,6 +76,12 @@ a {
 }
 a:hover {
   color: var(--link-hover);
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 body {
@@ -91,7 +99,7 @@ h1 {
 
 button {
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: 1px solid var(--btn-border);
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
@@ -99,7 +107,7 @@ button {
   background-color: var(--btn-bg);
   color: var(--text);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, background-color 0.2s;
 }
 button:hover {
   border-color: var(--btn-border-hover);

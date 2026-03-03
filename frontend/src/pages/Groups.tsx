@@ -142,8 +142,8 @@ export default function Groups() {
         <table className="table">
           <thead>
             <tr>
-              <th>组名</th>
-              <th>成员 <span className="field-origin">(逗号分隔)</span></th>
+              <th>组名 <span className="field-origin">(name)</span></th>
+              <th>成员 <span className="field-origin">(members)</span></th>
               <th>操作</th>
             </tr>
           </thead>
@@ -180,8 +180,8 @@ export default function Groups() {
         <table className="table">
           <thead>
             <tr>
-              <th>组名</th>
-              <th>成员 <span className="field-origin">(逗号分隔)</span></th>
+              <th>组名 <span className="field-origin">(name)</span></th>
+              <th>成员 <span className="field-origin">(members)</span></th>
               <th>操作</th>
             </tr>
           </thead>
@@ -222,7 +222,7 @@ export default function Groups() {
           aria-label="关闭"
         >
           <div
-            className="modal"
+            className="modal modal--raw-json"
             role="dialog"
             aria-modal="true"
             aria-labelledby="groups-raw-title"
@@ -232,12 +232,14 @@ export default function Groups() {
               <h3 id="groups-raw-title">编辑 JSON</h3>
               <button type="button" className="modal-close" onClick={() => setRawJsonOpen(false)} aria-label="关闭">×</button>
             </div>
-            <textarea
-              className="json-edit"
-              value={raw}
-              onChange={(e) => setRaw(e.target.value)}
-              rows={14}
-            />
+            <div className="modal-body">
+              <textarea
+                className="json-edit json-edit--modal"
+                value={raw}
+                onChange={(e) => setRaw(e.target.value)}
+                rows={14}
+              />
+            </div>
             <div className="button-row">
               <button onClick={handleSaveRaw} disabled={saving}>
                 从 JSON 保存

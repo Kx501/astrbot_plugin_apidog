@@ -40,7 +40,7 @@ export default function Schedules() {
       <h2>计划任务 <span className="field-origin">(schedules.json)</span></h2>
       {error && <p className="error">{error}</p>}
       <div className="button-row">
-        <button onClick={add}>新增</button>
+        <button onClick={add}>新增任务</button>
         <button onClick={handleSave} disabled={saving}>
           {saving ? "保存中…" : "保存当前页"}
         </button>
@@ -93,7 +93,9 @@ export default function Schedules() {
                 </label>
               </td>
               <td>
-                <button onClick={() => remove(i)}>删除</button>
+                <span className="button-group">
+                  <button onClick={() => remove(i)}>删除</button>
+                </span>
               </td>
             </tr>
           ))}
