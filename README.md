@@ -24,7 +24,11 @@
 ## API 配置要点
 
 - **基础**：`id` / `command`、`method`、`url`、`headers`、`params`、`body`
-- **占位符**：`{{args.0}}`、`{{named.xxx}}`、`{{named.xxx|默认值}}`、`{{config.xxx}}`
+- **占位符**（可在 **url、headers、params、body** 中使用，包括链接路径和查询串）：
+  - `{{args.0}}`、`{{args.1}}` … 位置参数（用户输入第 1、2… 个词）
+  - `{{named.键名}}`、`{{named.键名|默认值}}` 命名参数（如用户输入 `model=flux` 则 `{{named.model}}` 为 flux）
+  - `{{config.键名}}` 来自 auth/全局配置的值  
+  占位符格式固定为上述三种前缀（`args.` / `named.` / `config.`），键名或索引按需填写。
 - **响应**：`response_type`（text / image / video / audio）、`response_path`（JSON 取结果路径）、`response_media_from`（url 或 body，body 表示接口直接返回二进制媒体）
 - **认证**：`auth` 或 `auth_ref`（填 auth.json 中某条认证的键名，如 `default`）
 - **权限**：`allowed_user_groups`、`allowed_group_groups`（组在 groups.json 中定义）
