@@ -16,11 +16,20 @@ export function clearStoredPassword(): void {
   sessionStorage.removeItem(PASSWORD_KEY);
 }
 
+/** 前端只存哈希，不存明文。与后端 SHA-256 一致。 */
+export async function hashPassword(plain: string): Promise<string> {
+  const enc = new TextEncoder().encode(plain);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 /** 无需密码，用于判断是否已初始化 */
 export async function getStatus(): Promise<{ initialized: boolean }> {
   const res = await fetch(`${base}/status`);
   if (!res.ok) throw new Error("Failed to get status");
-  return res.json() as Promise<{ initialized: boolean }>;
+  return res.json();
 }
 
 /** 仅未初始化时可用，设置密码并写入后端 config */
@@ -50,6 +59,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     clearStoredPassword();
     window.location.href = "/";
     throw new Error("Unauthorized");
+  }
+  if (res.status === 429) {
+    const err = await res.json().catch(() => ({ detail: "Too many attempts" }));
+    throw new Error((err as { detail?: string }).detail ?? "请求过于频繁，请稍后再试");
   }
   if (res.status === 403) {
     const err = await res.json().catch(() => ({}));

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getConfig, setStoredPassword } from "../api";
+import { getConfig, hashPassword, setStoredPassword } from "../api";
 
 export default function Login() {
   const [password, setPassword] = useState("");
@@ -11,8 +11,9 @@ export default function Login() {
     if (!password.trim()) return;
     setError(null);
     setLoading(true);
-    setStoredPassword(password.trim());
     try {
+      const hash = await hashPassword(password.trim());
+      setStoredPassword(hash);
       await getConfig();
       window.location.replace("/");
     } catch (err) {

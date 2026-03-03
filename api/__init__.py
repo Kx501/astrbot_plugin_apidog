@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
-import secrets
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -27,11 +28,19 @@ _ALLOWED_FILES = frozenset({"config.json", "apis.json", "schedules.json", "group
 _PROJECT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 _MAIN_PY_PATH = Path(__file__).resolve().parent.parent / "main.py"
 
+# 防暴力破解：同一 IP 连续 N 次密码错误后锁定一段时间
+_AUTH_FAIL_MAX = 5
+_AUTH_LOCK_SECONDS = 180
+
+
+def _password_hash(plain: str) -> str:
+    return hashlib.sha256(plain.encode("utf-8")).hexdigest()
+
 
 def create_app(data_dir: Path | None = None) -> FastAPI:
     app = FastAPI(title="ApiDog Config API", version="0.1.0")
     app.state.data_dir = data_dir
-    # 从 config.json 读取 config_api_password；无则未初始化，不生成临时密码
+    # 从 config.json 读取 api_pwd_hash；无则未初始化
     _dir = data_dir if data_dir is not None else _PROJECT_DATA_DIR
     if not _dir.is_dir():
         _dir.mkdir(parents=True, exist_ok=True)
@@ -43,17 +52,21 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
                 _raw = json.load(f)
         except Exception:
             pass
-    _pwd = _raw.get("config_api_password") if isinstance(_raw, dict) else None
-    if _pwd and isinstance(_pwd, str) and _pwd.strip():
-        app.state.config_password = _pwd.strip()
+    _raw = _raw if isinstance(_raw, dict) else {}
+    _pwd_hash = _raw.get("api_pwd_hash")
+    if _pwd_hash and isinstance(_pwd_hash, str) and _pwd_hash.strip():
+        app.state.config_password = _pwd_hash.strip()
         app.state.initialized = True
     else:
         app.state.config_password = None
         app.state.initialized = False
+    app.state.auth_fail_count = {}
+    app.state.auth_lock_until = {}
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+        allow_origins=[],
+        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
         allow_credentials=True,
         allow_methods=["GET", "PUT", "POST", "OPTIONS"],
         allow_headers=["Content-Type", "X-Config-Password"],
@@ -68,13 +81,46 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             p.mkdir(parents=True, exist_ok=True)
         return p
 
+    def _client_ip(request: Request) -> str:
+        xff = request.headers.get("x-forwarded-for")
+        if xff:
+            return xff.split(",")[0].strip()
+        if request.client:
+            return request.client.host
+        return "unknown"
+
     def require_password(request: Request) -> None:
         if not getattr(request.app.state, "initialized", True):
             raise HTTPException(status_code=403, detail="not_initialized")
+        ip = _client_ip(request)
+        now = time.time()
+        lock_until = getattr(request.app.state, "auth_lock_until", {})
+        if lock_until.get(ip, 0) > now:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many failed attempts, try again later",
+            )
         want = getattr(request.app.state, "config_password", "")
         got = request.headers.get("X-Config-Password", "")
         if not want or got != want:
+            fail_count = getattr(request.app.state, "auth_fail_count", {})
+            fail_count[ip] = fail_count.get(ip, 0) + 1
+            request.app.state.auth_fail_count = fail_count
+            if fail_count[ip] >= _AUTH_FAIL_MAX:
+                lock_until = getattr(request.app.state, "auth_lock_until", {})
+                lock_until[ip] = now + _AUTH_LOCK_SECONDS
+                request.app.state.auth_lock_until = lock_until
             raise HTTPException(status_code=401, detail="Invalid or missing password")
+        fail_count = getattr(request.app.state, "auth_fail_count", {})
+        if ip in fail_count:
+            fail_count = dict(fail_count)
+            del fail_count[ip]
+            request.app.state.auth_fail_count = fail_count
+        lock_until = getattr(request.app.state, "auth_lock_until", {})
+        if ip in lock_until:
+            lock_until = dict(lock_until)
+            del lock_until[ip]
+            request.app.state.auth_lock_until = lock_until
 
     def _path_for(name: str, data_dir: Path) -> Path:
         if name not in _ALLOWED_FILES:
@@ -136,7 +182,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
 
     @router.get("/status")
     def get_status(request: Request) -> dict[str, bool]:
-        """无需密码，返回是否已初始化（是否已设置 config_api_password）。"""
+        """无需密码，返回是否已初始化（是否已设置 api_pwd_hash）。"""
         return {"initialized": getattr(request.app.state, "initialized", False)}
 
     @router.post("/init")
@@ -145,7 +191,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         body: dict[str, Any] = Body(...),
         data_dir: Path = Depends(get_data_dir),
     ) -> dict[str, str]:
-        """仅未初始化时可调用，设置 config_api_password 并写入 config.json。"""
+        """仅未初始化时可调用，将密码哈希写入 api_pwd_hash，不存明文。"""
         if getattr(request.app.state, "initialized", False):
             raise HTTPException(status_code=400, detail="already_initialized")
         pwd = body.get("password")
@@ -157,10 +203,11 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         raw = _read_json(path, {})
         if not isinstance(raw, dict):
             raw = {}
-        raw["config_api_password"] = pwd.strip()
+        pwd_plain = pwd.strip()
+        raw["api_pwd_hash"] = _password_hash(pwd_plain)
         _write_json_atomic(path, raw)
         loader.invalidate_config(data_dir)
-        request.app.state.config_password = raw["config_api_password"]
+        request.app.state.config_password = raw["api_pwd_hash"]
         request.app.state.initialized = True
         return {"status": "ok"}
 

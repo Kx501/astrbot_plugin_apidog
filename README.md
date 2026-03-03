@@ -9,7 +9,7 @@
 ## 配置
 
 - **数据目录**：由 AstrBot 按插件目录名确定（如 `data/plugin_data/astrbot_plugin_apidog/`）。将 `sample_apis.json` 复制到该目录为 `apis.json` 并按需编辑。
-- **config.json**（可选）：复制 `sample_config.json` 为 `config.json`，配置全局默认超时、重试及可重试状态码。不创建则使用内置默认（超时 30 秒、不重试）。`retry_statuses` 默认 `[500, 502, 503, 429]`，可增加 408、504 等。
+- **config.json**（可选）：复制 `sample_config.json` 为 `config.json`，配置全局默认超时、重试及可重试状态码。不创建则使用内置默认（超时 30 秒、不重试）。`retry_statuses` 默认 `[500, 502, 503, 429]`，可增加 408、504 等。配置管理 API 的密码哈希写在 `api_pwd_hash`（仅哈希，不存明文）；无此项时首次打开管理页会进入初始化设密。
 - **auth.json / groups.json**（可选）：复制 `sample_auth.json`、`sample_groups.json` 为 `auth.json`、`groups.json`，配置认证与用户组/群组（API 权限由组名引用）。
 
 ## 用法
@@ -52,7 +52,9 @@
 ## 配置管理前端
 
 - 启用插件后访问 **http://localhost:5787/** 即为配置页（端口可在 config.json 的 `api_port` 修改，改后保存即可生效）。
-- **登录**：每次启动生成新临时密码，在 AstrBot 或控制台日志中查看「Config API 临时密码: xxx」。
+- **首次使用**：若 config.json 中无 `api_pwd_hash`，会进入初始化页，设置一次密码（仅存 SHA-256 哈希，不存明文）。重载插件后密码不变，无需重新登录。
+- **登录**：输入初始化时设置的密码即可。前端与本地仅存密码哈希，请求头带哈希校验。
+- **忘记密码**：在 config.json 中删掉 `api_pwd_hash` 后刷新页面，会再次进入初始化页重新设密。
 - **后端**：读写 config/apis/schedules/groups/auth；插件启用时自动在配置端口启动。独立运行：`python -m api`（端口与数据目录从 config 读取）（数据目录为项目根下 **data**；不推荐直接用 `uvicorn api.app:app`，因无模块级 app）。
 - **改前端**：在 `frontend/` 下执行 `npm install && npm run build`，将 `dist` 提交或覆盖到插件中。
 

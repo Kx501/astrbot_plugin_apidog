@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { postInit, setStoredPassword } from "../api";
+import { hashPassword, postInit, setStoredPassword } from "../api";
 
 export default function Init() {
   const [password, setPassword] = useState("");
@@ -21,7 +21,8 @@ export default function Init() {
     setLoading(true);
     try {
       await postInit(password.trim());
-      setStoredPassword(password.trim());
+      const hash = await hashPassword(password.trim());
+      setStoredPassword(hash);
       window.location.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "设置失败");
@@ -34,7 +35,7 @@ export default function Init() {
     <div className="page page--narrow page--login">
       <div className="login-card">
         <h2 className="login-title">初始化配置</h2>
-        <p className="muted">首次使用请设置 Config API 密码，用于后续登录管理页。忘记密码时可在配置文件中删除 config_api_password 后重新打开本页设置。</p>
+        <p className="muted">首次使用请设置 Config API 密码，用于后续登录管理页。忘记密码时可在配置文件中删除 api_pwd_hash 后重新打开本页设置。</p>
         {error && <p className="error">{error}</p>}
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
