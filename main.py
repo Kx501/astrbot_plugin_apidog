@@ -27,7 +27,7 @@ from .runtime import start_scheduler, stop_scheduler
 @register(
     "ApiDog",
     "可配置 API 与指令绑定，通过指令调用 API。用法: /api <接口名> [参数...]",
-    "0.1.0",
+    "1.3.6",
     "https://github.com/Kx501/astrbot_plugin_apidog",
 )
 class ApiDogStar(Star):
@@ -50,7 +50,13 @@ class ApiDogStar(Star):
                 apis = load_apis(self._data_dir)
                 config = load_config(self._data_dir)
                 inject_commands_into_main(main_path, apis)
-                _ab_logger.info("已根据配置写回独立指令到 main.py，重载插件后生效")
+                enabled_cmd = [
+                    a for a in apis
+                    if a.get("enabled", True) is not False and a.get("as_cmd", False) is True
+                ]
+                if enabled_cmd:
+                    self._pending_reload_after_inject = True
+                    _ab_logger.info("已根据配置写回独立指令到 main.py，重载插件后生效")
             except Exception:
                 _ab_logger.exception("首次加载写回独立指令失败")
         try:
@@ -72,6 +78,21 @@ class ApiDogStar(Star):
             if pm is not None and getattr(self, "name", None):
                 loop = asyncio.get_running_loop()
                 self._api_app.state.reload_trigger = (pm, self.name, loop)
+                if getattr(self, "_pending_reload_after_inject", False):
+                    try:
+                        plugin_name = self.name
+
+                        async def _reload_self() -> None:
+                            await pm.reload(plugin_name)
+
+                        loop.call_soon_threadsafe(
+                            lambda: asyncio.ensure_future(_reload_self(), loop=loop)
+                        )
+                    except Exception:
+                        _ab_logger.exception("调度插件自重载失败")
+                    finally:
+                        if hasattr(self, "_pending_reload_after_inject"):
+                            del self._pending_reload_after_inject
         except Exception:
             _ab_logger.debug("ApiDog 未设置自动重载回调: %s", exc_info=True)
 
