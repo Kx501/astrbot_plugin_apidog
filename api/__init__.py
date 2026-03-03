@@ -31,14 +31,31 @@ _MAIN_PY_PATH = Path(__file__).resolve().parent.parent / "main.py"
 def create_app(data_dir: Path | None = None) -> FastAPI:
     app = FastAPI(title="ApiDog Config API", version="0.1.0")
     app.state.data_dir = data_dir
-    app.state.config_password = secrets.token_hex(8)
-    logger.info("Config API 临时密码: %s", app.state.config_password)
+    # 从 config.json 读取 config_api_password；无则未初始化，不生成临时密码
+    _dir = data_dir if data_dir is not None else _PROJECT_DATA_DIR
+    if not _dir.is_dir():
+        _dir.mkdir(parents=True, exist_ok=True)
+    _config_path = _dir / "config.json"
+    _raw = {}
+    if _config_path.is_file():
+        try:
+            with open(_config_path, "r", encoding="utf-8") as f:
+                _raw = json.load(f)
+        except Exception:
+            pass
+    _pwd = _raw.get("config_api_password") if isinstance(_raw, dict) else None
+    if _pwd and isinstance(_pwd, str) and _pwd.strip():
+        app.state.config_password = _pwd.strip()
+        app.state.initialized = True
+    else:
+        app.state.config_password = None
+        app.state.initialized = False
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
         allow_credentials=True,
-        allow_methods=["GET", "PUT", "OPTIONS"],
+        allow_methods=["GET", "PUT", "POST", "OPTIONS"],
         allow_headers=["Content-Type", "X-Config-Password"],
     )
 
@@ -52,6 +69,8 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         return p
 
     def require_password(request: Request) -> None:
+        if not getattr(request.app.state, "initialized", True):
+            raise HTTPException(status_code=403, detail="not_initialized")
         want = getattr(request.app.state, "config_password", "")
         got = request.headers.get("X-Config-Password", "")
         if not want or got != want:
@@ -114,6 +133,36 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=500, detail=f"Failed to write {path.name}: {e}") from e
 
     router = APIRouter()
+
+    @router.get("/status")
+    def get_status(request: Request) -> dict[str, bool]:
+        """无需密码，返回是否已初始化（是否已设置 config_api_password）。"""
+        return {"initialized": getattr(request.app.state, "initialized", False)}
+
+    @router.post("/init")
+    def post_init(
+        request: Request,
+        body: dict[str, Any] = Body(...),
+        data_dir: Path = Depends(get_data_dir),
+    ) -> dict[str, str]:
+        """仅未初始化时可调用，设置 config_api_password 并写入 config.json。"""
+        if getattr(request.app.state, "initialized", False):
+            raise HTTPException(status_code=400, detail="already_initialized")
+        pwd = body.get("password")
+        if not isinstance(pwd, str) or not pwd.strip():
+            raise HTTPException(status_code=400, detail="password required")
+        path = _path_for("config.json", data_dir)
+        if not _ensure_inside(data_dir, path):
+            raise HTTPException(status_code=400, detail="Invalid path")
+        raw = _read_json(path, {})
+        if not isinstance(raw, dict):
+            raw = {}
+        raw["config_api_password"] = pwd.strip()
+        _write_json_atomic(path, raw)
+        loader.invalidate_config(data_dir)
+        request.app.state.config_password = raw["config_api_password"]
+        request.app.state.initialized = True
+        return {"status": "ok"}
 
     @router.get("/config")
     def get_config(

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { getConfig } from "./api";
 import "./App.css";
 
 const SIDEBAR_STORAGE_KEY = "apidog_sidebar_collapsed";
@@ -31,6 +32,48 @@ const LINKS = [
   { to: "/auth", label: "认证", short: "证" },
 ];
 
+const POLL_INTERVAL_MS = 10_000;
+
+function ConnectionBanner() {
+  const [disconnected, setDisconnected] = useState(false);
+  const [reconnected, setReconnected] = useState(false);
+  const wasDisconnected = useRef(false);
+
+  useEffect(() => {
+    const id = setInterval(async () => {
+      try {
+        await getConfig();
+        if (wasDisconnected.current) {
+          setReconnected(true);
+          wasDisconnected.current = false;
+          setTimeout(() => setReconnected(false), 3000);
+        }
+        setDisconnected(false);
+      } catch {
+        setDisconnected(true);
+        wasDisconnected.current = true;
+      }
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  if (disconnected) {
+    return (
+      <div className="connection-banner connection-banner--disconnected" role="status">
+        连接已断开，正在重连…
+      </div>
+    );
+  }
+  if (reconnected) {
+    return (
+      <div className="connection-banner connection-banner--reconnected" role="status">
+        已重新连接
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialCollapsed);
   const location = useLocation();
@@ -49,6 +92,7 @@ export default function App() {
   return (
     <div className={`app ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       <ScrollToTop />
+      <ConnectionBanner />
       <button
         type="button"
         className="sidebar-open-btn"

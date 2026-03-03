@@ -1,3 +1,24 @@
+/* ---------- 连接状态条 ---------- */
+.connection-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.9rem;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.connection-banner--disconnected {
+  background: var(--error);
+  color: #fff;
+}
+.connection-banner--reconnected {
+  background: var(--nav-active);
+  color: var(--nav-active-text);
+}
+
 /* ---------- 全局与布局 ---------- */
 .app {
   min-height: 100vh;

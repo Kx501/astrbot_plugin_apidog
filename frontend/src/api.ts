@@ -16,6 +16,27 @@ export function clearStoredPassword(): void {
   sessionStorage.removeItem(PASSWORD_KEY);
 }
 
+/** 无需密码，用于判断是否已初始化 */
+export async function getStatus(): Promise<{ initialized: boolean }> {
+  const res = await fetch(`${base}/status`);
+  if (!res.ok) throw new Error("Failed to get status");
+  return res.json() as Promise<{ initialized: boolean }>;
+}
+
+/** 仅未初始化时可用，设置密码并写入后端 config */
+export async function postInit(password: string): Promise<{ status: string }> {
+  const res = await fetch(`${base}/init`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: password.trim() }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error((err as { detail?: string }).detail ?? "Request failed");
+  }
+  return res.json() as Promise<{ status: string }>;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const password = getStoredPassword();
   const headers: Record<string, string> = {
@@ -29,6 +50,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     clearStoredPassword();
     window.location.href = "/";
     throw new Error("Unauthorized");
+  }
+  if (res.status === 403) {
+    const err = await res.json().catch(() => ({}));
+    if ((err as { detail?: string }).detail === "not_initialized") {
+      window.location.href = "/";
+    }
+    throw new Error((err as { detail?: string }).detail ?? "Forbidden");
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));

@@ -26,16 +26,16 @@ export default function Login() {
     <div className="page page--narrow page--login">
       <div className="login-card">
         <h2 className="login-title">配置管理登录</h2>
-        <p className="muted">请输入本次启动时控制台/日志中显示的「Config API 临时密码」。</p>
+        <p className="muted">请输入你设置的 Config API 密码。</p>
         {error && <p className="error">{error}</p>}
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label>临时密码</label>
+            <label>密码</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="从启动日志复制"
+              placeholder="请输入密码"
               autoFocus
             />
           </div>
