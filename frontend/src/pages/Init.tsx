@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { hashPassword, postInit, setStoredPassword } from "../api";
 
 export default function Init() {
@@ -7,7 +7,7 @@ export default function Init() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!password.trim()) {
       setError("请输入密码");

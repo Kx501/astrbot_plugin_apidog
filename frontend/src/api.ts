@@ -16,7 +16,7 @@ export function clearStoredPassword(): void {
   sessionStorage.removeItem(PASSWORD_KEY);
 }
 
-/** 前端只存哈希，不存明文。与后端 SHA-256 一致。 */
+/** Hash password with SHA-256 (hex). Matches backend; only hash is stored, never plain. */
 export async function hashPassword(plain: string): Promise<string> {
   const enc = new TextEncoder().encode(plain);
   const buf = await crypto.subtle.digest("SHA-256", enc);
@@ -25,14 +25,22 @@ export async function hashPassword(plain: string): Promise<string> {
     .join("");
 }
 
-/** 无需密码，用于判断是否已初始化 */
+/** No auth required. Returns whether the backend is initialized (api_pwd_hash set). */
 export async function getStatus(): Promise<{ initialized: boolean }> {
   const res = await fetch(`${base}/status`);
   if (!res.ok) throw new Error("Failed to get status");
   return res.json();
 }
 
-/** 仅未初始化时可用，设置密码并写入后端 config */
+/** Change password when authenticated. Writes new hash to backend config. */
+export async function putPassword(newPassword: string): Promise<{ status: string }> {
+  return request<{ status: string }>("/password", {
+    method: "PUT",
+    body: JSON.stringify({ new_password: newPassword.trim() }),
+  });
+}
+
+/** Only when not initialized. Set password and write hash to backend config. */
 export async function postInit(password: string): Promise<{ status: string }> {
   const res = await fetch(`${base}/init`, {
     method: "POST",
@@ -62,7 +70,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ detail: "Too many attempts" }));
-    throw new Error((err as { detail?: string }).detail ?? "请求过于频繁，请稍后再试");
+    throw new Error((err as { detail?: string }).detail ?? "Too many attempts, try again later");
   }
   if (res.status === 403) {
     const err = await res.json().catch(() => ({}));

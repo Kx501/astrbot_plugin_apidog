@@ -108,7 +108,7 @@ export default function Groups() {
 
   if (loading) return <p>加载中…</p>;
   return (
-    <div className="page">
+    <div className="page page--groups">
       <h2>用户/群组 <span className="field-origin">(groups.json)</span></h2>
       {error && <p className="error">{error}</p>}
       <div className="button-row">
@@ -166,7 +166,9 @@ export default function Groups() {
                   />
                 </td>
                 <td>
-                  <button onClick={() => removeRow(setUserRows, i)}>删除</button>
+                  <span className="button-group">
+                    <button onClick={() => removeRow(setUserRows, i)}>删除</button>
+                  </span>
                 </td>
               </tr>
             ))}
@@ -204,7 +206,9 @@ export default function Groups() {
                   />
                 </td>
                 <td>
-                  <button onClick={() => removeRow(setGroupRows, i)}>删除</button>
+                  <span className="button-group">
+                    <button onClick={() => removeRow(setGroupRows, i)}>删除</button>
+                  </span>
                 </td>
               </tr>
             ))}

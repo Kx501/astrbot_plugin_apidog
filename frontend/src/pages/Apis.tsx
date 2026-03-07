@@ -203,6 +203,7 @@ export default function Apis() {
               <div className="form-group">
                 <label>ID <span className="field-origin">(id)</span></label>
                 <input
+                  className="input-short"
                   value={String(editRow.id ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, id: e.target.value })}
                 />
@@ -210,6 +211,7 @@ export default function Apis() {
               <div className="form-group">
                 <label>名称 <span className="field-origin">(name)</span></label>
                 <input
+                  className="input-short"
                   value={String(editRow.name ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, name: e.target.value })}
                 />
@@ -217,6 +219,7 @@ export default function Apis() {
               <div className="form-group">
                 <label>命令 <span className="field-origin">(command)</span></label>
                 <input
+                  className="input-short"
                   value={String(editRow.command ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, command: e.target.value })}
                 />
@@ -235,7 +238,7 @@ export default function Apis() {
               <div className="form-group">
                 <label>URL <span className="field-origin">(url)</span></label>
                 <input
-                  className="input-url"
+                  className="input-url input-wide"
                   type="url"
                   value={String(editRow.url ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, url: e.target.value })}
@@ -507,7 +510,7 @@ export default function Apis() {
     <div className="page">
       <h2>接口列表 <span className="field-origin">(apis.json)</span></h2>
       <p className="form-warning" style={{ marginTop: 0, marginBottom: "var(--space-md)" }}>
-        开启「独立指令」或「LLM 工具」会按配置执行接口或生成并执行代码，配置与数据被篡改时有安全风险，请仅在可信环境使用。
+        开启「独立指令」或「LLM 工具」会在本插件的代码中，生成并注册指令或工具，可能存在安全风险，请仅在可信环境使用。
       </p>
       {error && <p className="error">{error}</p>}
       <div className="button-row">

@@ -107,7 +107,7 @@ export default function App() {
         aria-hidden={sidebarCollapsed}
       >
         <div className="sidebar__head">
-          <span className="sidebar__title">ApiDog 配置管理</span>
+          <span className="sidebar__title">ApiDog 管理</span>
           <button
             type="button"
             className="sidebar__toggle"

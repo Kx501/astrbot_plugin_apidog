@@ -122,7 +122,7 @@ export default function Auth() {
 
   if (loading) return <p>加载中…</p>;
   return (
-    <div className="page">
+    <div className="page page--auth">
       <h2>认证 <span className="field-origin">(auth.json)</span></h2>
       <p className="muted">敏感信息，请勿外泄。建议仅在内网或本机使用本管理页。</p>
       {error && <p className="error">{error}</p>}
@@ -188,7 +188,6 @@ export default function Auth() {
                       placeholder="header 名"
                       value={e.header ?? ""}
                       onChange={(ev) => update(i, "header", ev.target.value)}
-                      style={{ width: "8em" }}
                     />
                     <input
                       type="password"
@@ -217,7 +216,6 @@ export default function Auth() {
                       placeholder="username"
                       value={e.username ?? ""}
                       onChange={(ev) => update(i, "username", ev.target.value)}
-                      style={{ width: "10em" }}
                     />
                     <input
                       className="table-input"
@@ -225,7 +223,6 @@ export default function Auth() {
                       type="password"
                       value={e.password ?? ""}
                       onChange={(ev) => update(i, "password", ev.target.value)}
-                      style={{ width: "10em" }}
                     />
                   </span>
                 )}

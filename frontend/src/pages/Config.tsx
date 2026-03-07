@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
-import { getConfig, putConfig } from "../api";
+import { type FormEvent, useEffect, useState } from "react";
+import { getConfig, hashPassword, putConfig, putPassword, setStoredPassword } from "../api";
 
 export default function Config() {
   const [data, setData] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pwdNew, setPwdNew] = useState("");
+  const [pwdConfirm, setPwdConfirm] = useState("");
+  const [pwdError, setPwdError] = useState<string | null>(null);
+  const [pwdSaving, setPwdSaving] = useState(false);
+  const [pwdDone, setPwdDone] = useState(false);
 
   useEffect(() => {
     getConfig()
@@ -23,6 +28,33 @@ export default function Config() {
         setError(String(e));
         setSaving(false);
       });
+  };
+
+  const handleChangePassword = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!pwdNew.trim()) {
+      setPwdError("请输入新密码");
+      return;
+    }
+    if (pwdNew !== pwdConfirm) {
+      setPwdError("两次输入不一致");
+      return;
+    }
+    setPwdError(null);
+    setPwdSaving(true);
+    try {
+      await putPassword(pwdNew.trim());
+      const hash = await hashPassword(pwdNew.trim());
+      setStoredPassword(hash);
+      setPwdNew("");
+      setPwdConfirm("");
+      setPwdDone(true);
+      setTimeout(() => setPwdDone(false), 3000);
+    } catch (err) {
+      setPwdError(err instanceof Error ? err.message : "修改失败");
+    } finally {
+      setPwdSaving(false);
+    }
   };
 
   const retry = (data?.retry as Record<string, unknown>) ?? {};
@@ -100,11 +132,46 @@ export default function Config() {
           />
         </div>
       </section>
-      <div className="button-row">
-        <button onClick={handleSave} disabled={saving}>
-          {saving ? "保存中…" : "保存当前页"}
-        </button>
-      </div>
+      <section className="page-section">
+        <h3>修改密码</h3>
+        <p className="muted">修改 Config API 登录密码，修改后请用新密码重新登录（当前会话已自动更新）。</p>
+        {pwdError && <p className="error">{pwdError}</p>}
+        {pwdDone && <p className="muted" style={{ color: "var(--nav-active)" }}>密码已修改。</p>}
+        <form onSubmit={handleChangePassword}>
+          <div className="form-group">
+            <label>新密码</label>
+            <input
+              type="password"
+              value={pwdNew}
+              onChange={(e) => setPwdNew(e.target.value)}
+              placeholder="请输入新密码"
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="form-group">
+            <label>确认新密码</label>
+            <input
+              type="password"
+              value={pwdConfirm}
+              onChange={(e) => setPwdConfirm(e.target.value)}
+              placeholder="再次输入新密码"
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="button-row">
+            <button type="submit" disabled={pwdSaving}>
+              {pwdSaving ? "修改中…" : "修改密码"}
+            </button>
+          </div>
+        </form>
+      </section>
+      <section className="page-section">
+        <div className="button-row">
+          <button onClick={handleSave} disabled={saving}>
+            {saving ? "保存中…" : "保存当前页"}
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

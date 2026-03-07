@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { getConfig, hashPassword, setStoredPassword } from "../api";
 
 export default function Login() {
@@ -6,7 +6,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!password.trim()) return;
     setError(null);
@@ -26,7 +26,7 @@ export default function Login() {
   return (
     <div className="page page--narrow page--login">
       <div className="login-card">
-        <h2 className="login-title">配置管理登录</h2>
+        <h2 className="login-title">控制台登录</h2>
         <p className="muted">请输入你设置的 Config API 密码。</p>
         {error && <p className="error">{error}</p>}
         <form onSubmit={handleSubmit} className="login-form">

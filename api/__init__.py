@@ -28,7 +28,7 @@ _ALLOWED_FILES = frozenset({"config.json", "apis.json", "schedules.json", "group
 _PROJECT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 _MAIN_PY_PATH = Path(__file__).resolve().parent.parent / "main.py"
 
-# 防暴力破解：同一 IP 连续 N 次密码错误后锁定一段时间
+# Brute-force protection: lock out an IP after N failed password attempts
 _AUTH_FAIL_MAX = 5
 _AUTH_LOCK_SECONDS = 180
 
@@ -40,7 +40,7 @@ def _password_hash(plain: str) -> str:
 def create_app(data_dir: Path | None = None) -> FastAPI:
     app = FastAPI(title="ApiDog Config API", version="0.1.0")
     app.state.data_dir = data_dir
-    # 从 config.json 读取 api_pwd_hash；无则未初始化
+    # Read api_pwd_hash from config.json; if missing, not initialized
     _dir = data_dir if data_dir is not None else _PROJECT_DATA_DIR
     if not _dir.is_dir():
         _dir.mkdir(parents=True, exist_ok=True)
@@ -144,8 +144,8 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=500, detail=f"Failed to read {path.name}: {e}") from e
 
     def _trigger_plugin_reload(request: Request) -> None:
-        """若插件注册了 reload_trigger，则在主循环上调度自重载（不阻塞当前请求）。
-        延迟约 3 秒再重载，避免响应尚未发出时插件被终止导致前端显示保存失败。
+        """If reload_trigger is set, schedule a plugin self-reload on the main loop (non-blocking).
+        Delay ~3s before reload so the response can be sent before the process exits.
         """
         trigger = getattr(request.app.state, "reload_trigger", None)
         if not trigger:
@@ -161,7 +161,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
                 lambda: asyncio.ensure_future(_delayed_reload(), loop=loop)
             )
         except Exception:
-            logger.exception("调度插件重载失败")
+            logger.exception("Failed to schedule plugin reload")
 
     def _write_json_atomic(path: Path, data: Any) -> None:
         base = path.parent
@@ -182,7 +182,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
 
     @router.get("/status")
     def get_status(request: Request) -> dict[str, bool]:
-        """无需密码，返回是否已初始化（是否已设置 api_pwd_hash）。"""
+        """No auth required. Returns whether api_pwd_hash is set (initialized)."""
         return {"initialized": getattr(request.app.state, "initialized", False)}
 
     @router.post("/init")
@@ -191,7 +191,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         body: dict[str, Any] = Body(...),
         data_dir: Path = Depends(get_data_dir),
     ) -> dict[str, str]:
-        """仅未初始化时可调用，将密码哈希写入 api_pwd_hash，不存明文。"""
+        """Only when not initialized. Writes password hash to api_pwd_hash (no plain text)."""
         if getattr(request.app.state, "initialized", False):
             raise HTTPException(status_code=400, detail="already_initialized")
         pwd = body.get("password")
@@ -209,6 +209,28 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         loader.invalidate_config(data_dir)
         request.app.state.config_password = raw["api_pwd_hash"]
         request.app.state.initialized = True
+        return {"status": "ok"}
+
+    @router.put("/password")
+    def put_password(
+        request: Request,
+        body: dict[str, Any] = Body(...),
+        data_dir: Path = Depends(get_data_dir),
+        _: None = Depends(require_password),
+    ) -> dict[str, str]:
+        """Change api_pwd_hash when authenticated. Body: { new_password: "..." }."""
+        new_pwd = body.get("new_password")
+        if not isinstance(new_pwd, str) or not new_pwd.strip():
+            raise HTTPException(status_code=400, detail="new_password required")
+        path = _path_for("config.json", data_dir)
+        if not _ensure_inside(data_dir, path):
+            raise HTTPException(status_code=400, detail="Invalid path")
+        raw = _read_json(path, {})
+        if not isinstance(raw, dict):
+            raw = {}
+        raw["api_pwd_hash"] = _password_hash(new_pwd.strip())
+        _write_json_atomic(path, raw)
+        request.app.state.config_password = raw["api_pwd_hash"]
         return {"status": "ok"}
 
     @router.get("/config")
@@ -306,7 +328,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         if not _ensure_inside(data_dir, path):
             raise HTTPException(status_code=400, detail="Invalid path")
         _write_json_atomic(path, {"schedules": body["schedules"]})
-        # 热重载：保存后立即刷新定时任务
+        # Hot reload: refresh scheduled tasks after save
         try:
             scheduler_mod.reload_schedules(data_dir)
         except Exception:

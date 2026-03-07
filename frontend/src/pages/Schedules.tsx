@@ -36,7 +36,7 @@ export default function Schedules() {
 
   if (loading) return <p>加载中…</p>;
   return (
-    <div className="page">
+    <div className="page page--schedules">
       <h2>计划任务 <span className="field-origin">(schedules.json)</span></h2>
       {error && <p className="error">{error}</p>}
       <div className="button-row">
