@@ -351,6 +351,13 @@
   margin: 0 0 var(--space-sm) 0;
 }
 
+/* 表单项下的说明文字：再小一号，稍微留一点上下空间 */
+.form-group .muted {
+  font-size: 0.75rem;
+  margin-top: -0.2rem;
+  margin-bottom: 0.35rem;
+}
+
 .page .error {
   color: var(--error);
   font-size: 0.9rem;
@@ -498,6 +505,13 @@
   max-width: 28em;
 }
 
+/* 全局表单 placeholder：略小一号、颜色更淡一些 */
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 .form-group input.input-url,
 .form-group input[type="url"] {
   min-width: 12em;
@@ -610,7 +624,7 @@
   max-width: 10em !important;
 }
 .modal .accordion-section .accordion-body .form-group input.input-wide {
-  max-width: 21em !important;
+  max-width: 22em !important;
 }
 
 .modal .form-group textarea {
@@ -777,7 +791,8 @@
 /* ---------- 弹窗（可单独用或放在 .modal-backdrop 内居中） ---------- */
 .modal {
   margin-top: var(--space-lg);
-  padding: 0 var(--space-lg) var(--space-lg);
+  /* 收窄左右内边距，让折叠框更贴近弹窗边界一点 */
+  padding: 0 var(--space-sm) var(--space-lg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-card);
@@ -795,8 +810,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  margin: 0 calc(-1 * var(--space-lg)) var(--space-md) calc(-1 * var(--space-lg));
-  padding: 4px var(--space-lg) 2px;
+  margin: 0 calc(-1 * var(--space-sm)) var(--space-md) calc(-1 * var(--space-sm));
+  padding: 4px var(--space-sm) 2px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
   border-top-left-radius: var(--radius);
@@ -872,7 +887,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-sm) var(--space-sm);
   background: var(--bg-accordion-head);
   cursor: pointer;
   user-select: none;
@@ -901,7 +916,8 @@
 
 .accordion-body {
   display: none;
-  padding: var(--space-md);
+  /* 收窄左右留白，让折叠内容更贴近边框 */
+  padding: var(--space-sm) var(--space-sm) var(--space-md);
   border-top: 1px solid var(--border);
 }
 

@@ -31,8 +31,8 @@ export default function Apis() {
   const [editRow, setEditRow] = useState<Record<string, unknown>>({});
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [openBasic, setOpenBasic] = useState(true);
-  const [openResponse, setOpenResponse] = useState(false);
-  const [openRequest, setOpenRequest] = useState(false);
+  const [openRequest, setOpenRequest] = useState(true);
+  const [openResponse, setOpenResponse] = useState(true);
   const [openRateLimit, setOpenRateLimit] = useState(false);
   const [openPermission, setOpenPermission] = useState(false);
   const [rawHeaders, setRawHeaders] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export default function Apis() {
     setRawParams(null);
     setRawBody(null);
     setOpenBasic(true);
-    setOpenResponse(false);
+    setOpenResponse(true);
     setOpenRequest(true);
     setOpenRateLimit(false);
     setOpenPermission(false);
@@ -264,47 +264,13 @@ export default function Apis() {
                   onChange={(e) => setEditRow({ ...editRow, url: e.target.value })}
                 />
               </div>
-            </div>
-          </div>
-          <div className={`accordion-section ${openResponse ? "open" : ""}`}>
-            <div className="accordion-head" onClick={() => setOpenResponse(!openResponse)}>响应与描述</div>
-            <div className="accordion-body">
-              <div className="form-group">
-                <label>响应类型 <span className="field-origin">(response_type)</span></label>
-                <select
-                  value={String(editRow.response_type ?? "text")}
-                  onChange={(e) => setEditRow({ ...editRow, response_type: e.target.value })}
-                >
-                  {RESPONSE_TYPES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>媒体来源 <span className="field-origin">(response_media_from)</span></label>
-                <select
-                  value={String(editRow.response_media_from ?? "url")}
-                  onChange={(e) => setEditRow({ ...editRow, response_media_from: e.target.value })}
-                >
-                  {MEDIA_FROM.map((v) => (
-                    <option key={v} value={v}>{v}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>响应路径 <span className="field-origin">(response_path)</span></label>
-                <input
-                  value={String(editRow.response_path ?? "")}
-                  onChange={(e) => setEditRow({ ...editRow, response_path: e.target.value })}
-                />
-              </div>
               <div className="form-group">
                 <label>描述 <span className="field-origin">(description)</span></label>
                 <textarea
                   value={String(editRow.description ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, description: e.target.value })}
                   rows={3}
-                  placeholder="接口简短说明，可选"
+                  placeholder="选填：接口简短说明"
                 />
               </div>
               <div className="form-group">
@@ -313,7 +279,7 @@ export default function Apis() {
                   value={String(editRow.help_text ?? editRow.help ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, help_text: e.target.value })}
                   rows={3}
-                  placeholder="对用户的提示文案，可选"
+                  placeholder="选填：对用户的提示文案"
                 />
               </div>
               <div className="form-group">
@@ -322,7 +288,7 @@ export default function Apis() {
                   value={String(editRow.args_desc ?? "")}
                   onChange={(e) => setEditRow({ ...editRow, args_desc: e.target.value })}
                   rows={3}
-                  placeholder="选填。LLM 工具 args 说明，如：城市名"
+                  placeholder="选填：LLM 工具 args 说明，如：查询天气工具的“城市名”"
                 />
               </div>
             </div>
@@ -352,6 +318,42 @@ export default function Apis() {
                   className="json-edit-sm"
                   value={jsonDisplayValue("body")}
                   onChange={(e) => setJsonField("body", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <div className={`accordion-section ${openResponse ? "open" : ""}`}>
+            <div className="accordion-head" onClick={() => setOpenResponse(!openResponse)}>响应</div>
+            <div className="accordion-body">
+              <div className="form-group">
+                <label>响应类型 <span className="field-origin">(response_type)</span></label>
+                <select
+                  value={String(editRow.response_type ?? "text")}
+                  onChange={(e) => setEditRow({ ...editRow, response_type: e.target.value })}
+                >
+                  {RESPONSE_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>媒体来源 <span className="field-origin">(response_media_from)</span></label>
+                <select
+                  value={String(editRow.response_media_from ?? "url")}
+                  onChange={(e) => setEditRow({ ...editRow, response_media_from: e.target.value })}
+                >
+                  {MEDIA_FROM.map((v) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>响应路径 <span className="field-origin">(response_path)</span></label>
+                <input
+                  className="input-url input-wide"
+                  value={String(editRow.response_path ?? "")}
+                  onChange={(e) => setEditRow({ ...editRow, response_path: e.target.value })}
+                  placeholder="选填：如 data.url，留空取整个响应体"
                 />
               </div>
             </div>
@@ -432,7 +434,8 @@ export default function Apis() {
                 />
               </div>
               <div className="form-group">
-                <label>重试次数 <span className="field-origin">(retry.max_attempts)</span> 不填用全局，填 0 不重试</label>
+                <label>重试次数 <span className="field-origin">(retry.max_attempts)</span></label>
+                <p className="muted">不填用全局设置，填 0 不重试。</p>
                 <input
                   type="number"
                   min={0}
@@ -488,7 +491,8 @@ export default function Apis() {
             <div className="accordion-head" onClick={() => setOpenPermission(!openPermission)}>权限与认证</div>
             <div className="accordion-body">
               <div className="form-group">
-                <label>认证 <span className="field-origin">(auth / auth_ref)</span> auth.json 中的键名</label>
+                <label>认证 <span className="field-origin">(auth / auth_ref)</span></label>
+                <p className="muted">auth.json 中的键名，如 <code>default</code>。</p>
                 <input
                   value={String(editRow.auth ?? editRow.auth_ref ?? "")}
                   onChange={(e) => {
@@ -499,7 +503,7 @@ export default function Apis() {
                 />
               </div>
               <div className="form-group">
-                <label>允许的用户组 <span className="field-origin">(allowed_user_groups)</span> 逗号分隔</label>
+                <label>允许的用户组 <span className="field-origin">(allowed_user_groups)</span></label>
                 <input
                   value={arrToStr(editRow.allowed_user_groups)}
                   onChange={(e) => setEditRow({ ...editRow, allowed_user_groups: strToArr(e.target.value) })}
@@ -507,7 +511,7 @@ export default function Apis() {
                 />
               </div>
               <div className="form-group">
-                <label>允许的群组组 <span className="field-origin">(allowed_group_groups)</span> 逗号分隔</label>
+                <label>允许的群组组 <span className="field-origin">(allowed_group_groups)</span></label>
                 <input
                   value={arrToStr(editRow.allowed_group_groups)}
                   onChange={(e) => setEditRow({ ...editRow, allowed_group_groups: strToArr(e.target.value) })}
