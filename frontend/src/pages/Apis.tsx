@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { HeaderActionContext } from "../HeaderActionContext";
 import { getApis, putApis } from "../api";
 
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
@@ -58,6 +59,25 @@ export default function Apis() {
         setSaving(false);
       });
   };
+
+  const { setAction } = useContext(HeaderActionContext);
+  const saveRef = useRef(handleSaveAll);
+  useEffect(() => {
+    saveRef.current = handleSaveAll;
+  }, [handleSaveAll]);
+  useEffect(() => {
+    setAction(
+      <button
+        type="button"
+        className="app-header__btn"
+        onClick={() => saveRef.current()}
+        disabled={saving}
+      >
+        {saving ? "保存中…" : "保存该页"}
+      </button>
+    );
+    return () => setAction(null);
+  }, [saving, setAction]);
 
   const startEdit = (index: number) => {
     setEditIndex(index);
@@ -515,66 +535,65 @@ export default function Apis() {
       {error && <p className="error">{error}</p>}
       <div className="button-row">
         <button onClick={addNew}>新增接口</button>
-        <button onClick={handleSaveAll} disabled={saving}>
-          {saving ? "保存中…" : "保存该页"}
-        </button>
       </div>
-      <table className="table">
-        <thead>
-          <tr>
-            <th className="col-command">命令 <span className="field-origin">(command)</span></th>
-            <th className="col-name">名称 <span className="field-origin">(name)</span></th>
-            <th>启用 <span className="field-origin">(enabled)</span></th>
-            <th>独立指令 <span className="field-origin">(as_cmd)</span></th>
-            <th>LLM 工具 <span className="field-origin">(as_llm_tool)</span></th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((row, i) => (
-            <tr key={i}>
-              <td>{String(row.command ?? row.id)}</td>
-              <td>{String(row.name ?? "")}</td>
-              <td>
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={row.enabled !== false}
-                    onChange={() => toggleEnabled(i)}
-                  />
-                  <span className="toggle__track" aria-hidden="true" />
-                </label>
-              </td>
-              <td>
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={row.as_cmd === true}
-                    onChange={() => toggleRegisterAsCommand(i)}
-                  />
-                  <span className="toggle__track" aria-hidden="true" />
-                </label>
-              </td>
-              <td>
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={row.as_llm_tool === true}
-                    onChange={() => toggleRegisterAsLlmTool(i)}
-                  />
-                  <span className="toggle__track" aria-hidden="true" />
-                </label>
-              </td>
-              <td>
-                <span className="button-group">
-                  <button onClick={() => startEdit(i)}>编辑</button>
-                  <button onClick={() => remove(i)}>删除</button>
-                </span>
-              </td>
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th className="col-command">命令 <span className="field-origin">(command)</span></th>
+              <th className="col-name">名称 <span className="field-origin">(name)</span></th>
+              <th>启用 <span className="field-origin">(enabled)</span></th>
+              <th>独立指令 <span className="field-origin">(as_cmd)</span></th>
+              <th>LLM 工具 <span className="field-origin">(as_llm_tool)</span></th>
+              <th>操作</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {list.map((row, i) => (
+              <tr key={i}>
+                <td>{String(row.command ?? row.id)}</td>
+                <td>{String(row.name ?? "")}</td>
+                <td>
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={row.enabled !== false}
+                      onChange={() => toggleEnabled(i)}
+                    />
+                    <span className="toggle__track" aria-hidden="true" />
+                  </label>
+                </td>
+                <td>
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={row.as_cmd === true}
+                      onChange={() => toggleRegisterAsCommand(i)}
+                    />
+                    <span className="toggle__track" aria-hidden="true" />
+                  </label>
+                </td>
+                <td>
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={row.as_llm_tool === true}
+                      onChange={() => toggleRegisterAsLlmTool(i)}
+                    />
+                    <span className="toggle__track" aria-hidden="true" />
+                  </label>
+                </td>
+                <td>
+                  <span className="button-group">
+                    <button onClick={() => startEdit(i)}>编辑</button>
+                    <button onClick={() => remove(i)}>删除</button>
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {editIndex !== null && (
         <div
           className="modal-backdrop"

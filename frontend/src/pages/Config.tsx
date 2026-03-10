@@ -1,4 +1,5 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useContext, useEffect, useRef, useState } from "react";
+import { HeaderActionContext } from "../HeaderActionContext";
 import { getConfig, hashPassword, putConfig, putPassword, setStoredPassword } from "../api";
 
 export default function Config() {
@@ -29,6 +30,18 @@ export default function Config() {
         setSaving(false);
       });
   };
+
+  const { setAction } = useContext(HeaderActionContext);
+  const saveRef = useRef(handleSave);
+  saveRef.current = handleSave;
+  useEffect(() => {
+    setAction(
+      <button type="button" className="app-header__btn" onClick={() => saveRef.current()} disabled={saving}>
+        {saving ? "保存中…" : "保存该页"}
+      </button>
+    );
+    return () => setAction(null);
+  }, [saving, setAction]);
 
   const handleChangePassword = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,14 +78,7 @@ export default function Config() {
   if (loading) return <p>加载中…</p>;
   return (
     <div className="page page--config">
-      <div className="page-header-row">
-        <h2>全局配置 <span className="field-origin">(config.json)</span></h2>
-        <div className="button-row">
-          <button onClick={handleSave} disabled={saving}>
-            {saving ? "保存中…" : "保存该页"}
-          </button>
-        </div>
-      </div>
+      <h2>全局配置 <span className="field-origin">(config.json)</span></h2>
       {error && <p className="error">{error}</p>}
       <section className="page-section">
         <h3>端口与超时</h3>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Routes, Route } from "react-router-dom";
-import { getStatus, getStoredPassword } from "./api";
+import { getStatus, getStoredPassword, clearStoredPassword } from "./api";
 import App from "./App.tsx";
 import Init from "./pages/Init.tsx";
 import Login from "./pages/Login.tsx";
@@ -16,7 +16,11 @@ export default function AuthGuard() {
   useEffect(() => {
     getStatus()
       .then(setStatus)
-      .catch(() => setStatus({ initialized: true }));
+      .catch(() => {
+        // 如果状态接口请求失败，清除本地密码，强制回到登录页，避免在断连时直接进入控制台
+        clearStoredPassword();
+        setStatus({ initialized: true });
+      });
   }, []);
 
   if (status === null) {

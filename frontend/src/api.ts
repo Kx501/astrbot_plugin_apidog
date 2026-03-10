@@ -70,7 +70,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
   if (res.status === 429) {
     clearStoredPassword();
-    window.location.href = "/";
     const err = await res.json().catch(() => ({ detail: "Too many attempts" }));
     throw new Error((err as { detail?: string }).detail ?? "Too many attempts, try again later");
   }

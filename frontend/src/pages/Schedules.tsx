@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { HeaderActionContext } from "../HeaderActionContext";
 import { getSchedules, putSchedules } from "../api";
 
 export default function Schedules() {
@@ -14,7 +15,7 @@ export default function Schedules() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     setSaving(true);
     setError(null);
     putSchedules(list)
@@ -23,7 +24,26 @@ export default function Schedules() {
         setError(String(e));
         setSaving(false);
       });
-  };
+  }, [list]);
+
+  const { setAction } = useContext(HeaderActionContext);
+  const saveRef = useRef(handleSave);
+  useEffect(() => {
+    saveRef.current = handleSave;
+  }, [handleSave]);
+  useEffect(() => {
+    setAction(
+      <button
+        type="button"
+        className="app-header__btn"
+        onClick={() => saveRef.current()}
+        disabled={saving}
+      >
+        {saving ? "保存中…" : "保存该页"}
+      </button>
+    );
+    return () => setAction(null);
+  }, [saving, setAction]);
 
   const update = (index: number, key: string, value: unknown) => {
     const next = [...list];
@@ -41,66 +61,65 @@ export default function Schedules() {
       {error && <p className="error">{error}</p>}
       <div className="button-row">
         <button onClick={add}>新增任务</button>
-        <button onClick={handleSave} disabled={saving}>
-          {saving ? "保存中…" : "保存该页"}
-        </button>
       </div>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>接口 id <span className="field-origin">(api_key)</span></th>
-            <th>cron 表达式 <span className="field-origin">(cron)</span></th>
-            <th>目标会话 <span className="field-origin">(target_session)</span></th>
-            <th>启用 <span className="field-origin">(enabled)</span></th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((row, i) => (
-            <tr key={i}>
-              <td>
-                <input
-                  className="table-input table-input--wide"
-                  value={String(row.api_key ?? "")}
-                  onChange={(e) => update(i, "api_key", e.target.value)}
-                  placeholder="接口 id"
-                />
-              </td>
-              <td>
-                <input
-                  className="table-input table-input--wide"
-                  value={String(row.cron ?? "")}
-                  onChange={(e) => update(i, "cron", e.target.value)}
-                  placeholder="0 9 * * *"
-                />
-              </td>
-              <td>
-                <input
-                  className="table-input table-input--wide"
-                  value={String(row.target_session ?? "")}
-                  onChange={(e) => update(i, "target_session", e.target.value)}
-                  placeholder="可选"
-                />
-              </td>
-              <td>
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={row.enabled !== false}
-                    onChange={() => update(i, "enabled", row.enabled === false)}
-                  />
-                  <span className="toggle__track" aria-hidden="true" />
-                </label>
-              </td>
-              <td>
-                <span className="button-group">
-                  <button onClick={() => remove(i)}>删除</button>
-                </span>
-              </td>
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>接口 id <span className="field-origin">(api_key)</span></th>
+              <th>cron 表达式 <span className="field-origin">(cron)</span></th>
+              <th>目标会话 <span className="field-origin">(target_session)</span></th>
+              <th>启用 <span className="field-origin">(enabled)</span></th>
+              <th>操作</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {list.map((row, i) => (
+              <tr key={i}>
+                <td>
+                  <input
+                    className="table-input table-input--wide"
+                    value={String(row.api_key ?? "")}
+                    onChange={(e) => update(i, "api_key", e.target.value)}
+                    placeholder="接口 id"
+                  />
+                </td>
+                <td>
+                  <input
+                    className="table-input table-input--wide"
+                    value={String(row.cron ?? "")}
+                    onChange={(e) => update(i, "cron", e.target.value)}
+                    placeholder="0 9 * * *"
+                  />
+                </td>
+                <td>
+                  <input
+                    className="table-input table-input--wide"
+                    value={String(row.target_session ?? "")}
+                    onChange={(e) => update(i, "target_session", e.target.value)}
+                    placeholder="可选"
+                  />
+                </td>
+                <td>
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={row.enabled !== false}
+                      onChange={() => update(i, "enabled", row.enabled === false)}
+                    />
+                    <span className="toggle__track" aria-hidden="true" />
+                  </label>
+                </td>
+                <td>
+                  <span className="button-group">
+                    <button onClick={() => remove(i)}>删除</button>
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

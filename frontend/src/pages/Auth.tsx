@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { HeaderActionContext } from "../HeaderActionContext";
 import { getAuth, putAuth } from "../api";
 
 type AuthEntry = {
@@ -88,6 +89,23 @@ export default function Auth() {
       });
   };
 
+  const { setAction } = useContext(HeaderActionContext);
+  const saveRef = useRef(handleSave);
+  saveRef.current = handleSave;
+  useEffect(() => {
+    setAction(
+      <button
+        type="button"
+        className="app-header__btn"
+        onClick={() => saveRef.current()}
+        disabled={saving}
+      >
+        {saving ? "保存中…" : "保存该页"}
+      </button>
+    );
+    return () => setAction(null);
+  }, [saving, setAction]);
+
   const handleSaveRaw = () => {
     let parsed: Record<string, unknown>;
     try {
@@ -128,9 +146,6 @@ export default function Auth() {
       {error && <p className="error">{error}</p>}
       <div className="button-row">
         <button onClick={add}>新增条目</button>
-        <button onClick={handleSave} disabled={saving}>
-          {saving ? "保存中…" : "保存该页"}
-        </button>
         <button
           type="button"
           onClick={() => {
@@ -141,101 +156,103 @@ export default function Auth() {
           编辑 JSON
         </button>
       </div>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>名称 <span className="field-origin">(name)</span></th>
-            <th>类型 <span className="field-origin">(type)</span></th>
-            <th>参数 <span className="field-origin">(token / header+value / username+password)</span></th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((e, i) => (
-            <tr key={i}>
-              <td>
-                <input
-                  className="table-input table-input--wide"
-                  value={e.name}
-                  onChange={(ev) => update(i, "name", ev.target.value)}
-                />
-              </td>
-              <td>
-                <select
-                  className="auth-type-select"
-                  value={e.type}
-                  onChange={(ev) => update(i, "type", ev.target.value as AuthEntry["type"])}
-                >
-                  <option value="bearer">bearer</option>
-                  <option value="api_key">api_key</option>
-                  <option value="basic">basic</option>
-                </select>
-              </td>
-              <td>
-                {e.type === "bearer" && (
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>名称 <span className="field-origin">(name)</span></th>
+              <th>类型 <span className="field-origin">(type)</span></th>
+              <th>参数 <span className="field-origin">(token / header+value / username+password)</span></th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((e, i) => (
+              <tr key={i}>
+                <td>
                   <input
-                    type="password"
                     className="table-input table-input--wide"
-                    placeholder="token"
-                    value={e.token ?? ""}
-                    onChange={(ev) => update(i, "token", ev.target.value)}
+                    value={e.name}
+                    onChange={(ev) => update(i, "name", ev.target.value)}
                   />
-                )}
-                {e.type === "api_key" && (
-                  <span className="auth-params">
-                    <input
-                      className="table-input"
-                      placeholder="header 名"
-                      value={e.header ?? ""}
-                      onChange={(ev) => update(i, "header", ev.target.value)}
-                    />
+                </td>
+                <td>
+                  <select
+                    className="auth-type-select"
+                    value={e.type}
+                    onChange={(ev) => update(i, "type", ev.target.value as AuthEntry["type"])}
+                  >
+                    <option value="bearer">bearer</option>
+                    <option value="api_key">api_key</option>
+                    <option value="basic">basic</option>
+                  </select>
+                </td>
+                <td>
+                  {e.type === "bearer" && (
                     <input
                       type="password"
                       className="table-input table-input--wide"
-                      placeholder="value"
-                      value={e.value ?? ""}
-                      onChange={(ev) => update(i, "value", ev.target.value)}
+                      placeholder="token"
+                      value={e.token ?? ""}
+                      onChange={(ev) => update(i, "token", ev.target.value)}
                     />
-                    <span className="auth-params-query">
-                      <span>query</span>
-                      <label className="toggle">
-                        <input
-                          type="checkbox"
-                          checked={e.inQuery ?? false}
-                          onChange={(ev) => update(i, "inQuery", ev.target.checked)}
-                        />
-                        <span className="toggle__track" aria-hidden="true" />
-                      </label>
+                  )}
+                  {e.type === "api_key" && (
+                    <span className="auth-params">
+                      <input
+                        className="table-input"
+                        placeholder="header 名"
+                        value={e.header ?? ""}
+                        onChange={(ev) => update(i, "header", ev.target.value)}
+                      />
+                      <input
+                        type="password"
+                        className="table-input table-input--wide"
+                        placeholder="value"
+                        value={e.value ?? ""}
+                        onChange={(ev) => update(i, "value", ev.target.value)}
+                      />
+                      <span className="auth-params-query">
+                        <span>query</span>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={e.inQuery ?? false}
+                            onChange={(ev) => update(i, "inQuery", ev.target.checked)}
+                          />
+                          <span className="toggle__track" aria-hidden="true" />
+                        </label>
+                      </span>
                     </span>
+                  )}
+                  {e.type === "basic" && (
+                    <span className="auth-params">
+                      <input
+                        className="table-input"
+                        placeholder="username"
+                        value={e.username ?? ""}
+                        onChange={(ev) => update(i, "username", ev.target.value)}
+                      />
+                      <input
+                        className="table-input"
+                        placeholder="password"
+                        type="password"
+                        value={e.password ?? ""}
+                        onChange={(ev) => update(i, "password", ev.target.value)}
+                      />
+                    </span>
+                  )}
+                </td>
+                <td>
+                  <span className="button-group">
+                    <button onClick={() => remove(i)}>删除</button>
                   </span>
-                )}
-                {e.type === "basic" && (
-                  <span className="auth-params">
-                    <input
-                      className="table-input"
-                      placeholder="username"
-                      value={e.username ?? ""}
-                      onChange={(ev) => update(i, "username", ev.target.value)}
-                    />
-                    <input
-                      className="table-input"
-                      placeholder="password"
-                      type="password"
-                      value={e.password ?? ""}
-                      onChange={(ev) => update(i, "password", ev.target.value)}
-                    />
-                  </span>
-                )}
-              </td>
-              <td>
-                <span className="button-group">
-                  <button onClick={() => remove(i)}>删除</button>
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {rawJsonOpen && (
         <div

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { HeaderActionContext } from "../HeaderActionContext";
 import { getGroups, putGroups } from "../api";
 
 type GroupRow = { name: string; members: string };
@@ -62,6 +63,23 @@ export default function Groups() {
       });
   };
 
+  const { setAction } = useContext(HeaderActionContext);
+  const saveRef = useRef(handleSave);
+  saveRef.current = handleSave;
+  useEffect(() => {
+    setAction(
+      <button
+        type="button"
+        className="app-header__btn"
+        onClick={() => saveRef.current()}
+        disabled={saving}
+      >
+        {saving ? "保存中…" : "保存该页"}
+      </button>
+    );
+    return () => setAction(null);
+  }, [saving, setAction]);
+
   const handleSaveRaw = () => {
     let parsed: Record<string, unknown>;
     try {
@@ -114,9 +132,6 @@ export default function Groups() {
       <div className="button-row">
         <button type="button" onClick={() => addRow(setUserRows)}>新增用户组</button>
         <button type="button" onClick={() => addRow(setGroupRows)}>新增群组</button>
-        <button onClick={handleSave} disabled={saving}>
-          {saving ? "保存中…" : "保存该页"}
-        </button>
         <button
           type="button"
           onClick={() => {
@@ -139,81 +154,85 @@ export default function Groups() {
       <section className="page-section">
         <h3>用户组 <span className="field-origin">(user_groups)</span></h3>
         <p className="muted">组名 → 成员 ID 列表，逗号分隔</p>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>组名 <span className="field-origin">(name)</span></th>
-              <th>成员 <span className="field-origin">(members)</span></th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {userRows.map((row, i) => (
-              <tr key={i}>
-                <td>
-                  <input
-                    className="table-input table-input--wide"
-                    value={row.name}
-                    onChange={(e) => updateRow(setUserRows, i, "name", e.target.value)}
-                  />
-                </td>
-                <td>
-                  <input
-                    className="table-input table-input--wide"
-                    value={row.members}
-                    onChange={(e) => updateRow(setUserRows, i, "members", e.target.value)}
-                    placeholder="id1, id2"
-                  />
-                </td>
-                <td>
-                  <span className="button-group">
-                    <button onClick={() => removeRow(setUserRows, i)}>删除</button>
-                  </span>
-                </td>
+        <div className="table-scroll">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>组名 <span className="field-origin">(name)</span></th>
+                <th>成员 <span className="field-origin">(members)</span></th>
+                <th>操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {userRows.map((row, i) => (
+                <tr key={i}>
+                  <td>
+                    <input
+                      className="table-input table-input--wide"
+                      value={row.name}
+                      onChange={(e) => updateRow(setUserRows, i, "name", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="table-input table-input--wide"
+                      value={row.members}
+                      onChange={(e) => updateRow(setUserRows, i, "members", e.target.value)}
+                      placeholder="id1, id2"
+                    />
+                  </td>
+                  <td>
+                    <span className="button-group">
+                      <button onClick={() => removeRow(setUserRows, i)}>删除</button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="page-section">
         <h3>群组 <span className="field-origin">(group_groups)</span></h3>
         <p className="muted">组名 → 群 ID 列表，逗号分隔</p>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>组名 <span className="field-origin">(name)</span></th>
-              <th>成员 <span className="field-origin">(members)</span></th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groupRows.map((row, i) => (
-              <tr key={i}>
-                <td>
-                  <input
-                    className="table-input table-input--wide"
-                    value={row.name}
-                    onChange={(e) => updateRow(setGroupRows, i, "name", e.target.value)}
-                  />
-                </td>
-                <td>
-                  <input
-                    className="table-input table-input--wide"
-                    value={row.members}
-                    onChange={(e) => updateRow(setGroupRows, i, "members", e.target.value)}
-                    placeholder="id1, id2"
-                  />
-                </td>
-                <td>
-                  <span className="button-group">
-                    <button onClick={() => removeRow(setGroupRows, i)}>删除</button>
-                  </span>
-                </td>
+        <div className="table-scroll">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>组名 <span className="field-origin">(name)</span></th>
+                <th>成员 <span className="field-origin">(members)</span></th>
+                <th>操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {groupRows.map((row, i) => (
+                <tr key={i}>
+                  <td>
+                    <input
+                      className="table-input table-input--wide"
+                      value={row.name}
+                      onChange={(e) => updateRow(setGroupRows, i, "name", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="table-input table-input--wide"
+                      value={row.members}
+                      onChange={(e) => updateRow(setGroupRows, i, "members", e.target.value)}
+                      placeholder="id1, id2"
+                    />
+                  </td>
+                  <td>
+                    <span className="button-group">
+                      <button onClick={() => removeRow(setGroupRows, i)}>删除</button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {rawJsonOpen && (

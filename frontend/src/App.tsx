@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { getConfig } from "./api";
+import { HeaderActionContext } from "./HeaderActionContext";
 import "./App.css";
 
 const SIDEBAR_STORAGE_KEY = "apidog_sidebar_collapsed";
@@ -76,6 +77,7 @@ function ConnectionBanner() {
 
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialCollapsed);
+  const [headerAction, setHeaderAction] = useState<React.ReactNode>(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -90,18 +92,25 @@ export default function App() {
   const closeSidebar = () => setSidebarCollapsed(true);
 
   return (
+    <HeaderActionContext.Provider value={{ setAction: setHeaderAction }}>
     <div className={`app ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       <ScrollToTop />
       <ConnectionBanner />
-      <button
-        type="button"
-        className="sidebar-open-btn"
-        onClick={toggleSidebar}
-        aria-label="打开菜单"
-        title="打开菜单"
-      >
-        &#9776;
-      </button>
+      <header className="app-header">
+        <button
+          type="button"
+          className="app-header__menu"
+          onClick={toggleSidebar}
+          aria-label={sidebarCollapsed ? "打开菜单" : "折叠侧栏"}
+          title={sidebarCollapsed ? "打开菜单" : "折叠侧栏"}
+        >
+          &#9776;
+        </button>
+        <div className="app-header__actions">
+          {headerAction}
+        </div>
+      </header>
+      <div className="app-body">
       <aside
         className={`sidebar ${sidebarCollapsed ? "sidebar--collapsed" : ""}`}
         aria-hidden={sidebarCollapsed}
@@ -146,6 +155,8 @@ export default function App() {
       <main className="main-inner">
         <Outlet />
       </main>
+      </div>
     </div>
+    </HeaderActionContext.Provider>
   );
 }
