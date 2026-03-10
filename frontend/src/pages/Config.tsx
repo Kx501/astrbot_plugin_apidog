@@ -65,7 +65,14 @@ export default function Config() {
   if (loading) return <p>加载中…</p>;
   return (
     <div className="page page--config">
-      <h2>全局配置 <span className="field-origin">(config.json)</span></h2>
+      <div className="page-header-row">
+        <h2>全局配置 <span className="field-origin">(config.json)</span></h2>
+        <div className="button-row">
+          <button onClick={handleSave} disabled={saving}>
+            {saving ? "保存中…" : "保存该页"}
+          </button>
+        </div>
+      </div>
       {error && <p className="error">{error}</p>}
       <section className="page-section">
         <h3>端口与超时</h3>
@@ -164,13 +171,6 @@ export default function Config() {
             </button>
           </div>
         </form>
-      </section>
-      <section className="page-section">
-        <div className="button-row">
-          <button onClick={handleSave} disabled={saving}>
-            {saving ? "保存中…" : "保存当前页"}
-          </button>
-        </div>
       </section>
     </div>
   );

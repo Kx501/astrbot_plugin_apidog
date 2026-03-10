@@ -516,7 +516,7 @@ export default function Apis() {
       <div className="button-row">
         <button onClick={addNew}>新增接口</button>
         <button onClick={handleSaveAll} disabled={saving}>
-          {saving ? "保存中…" : "保存当前页"}
+          {saving ? "保存中…" : "保存该页"}
         </button>
       </div>
       <table className="table">

@@ -129,7 +129,7 @@ export default function Auth() {
       <div className="button-row">
         <button onClick={add}>新增条目</button>
         <button onClick={handleSave} disabled={saving}>
-          {saving ? "保存中…" : "保存当前页"}
+          {saving ? "保存中…" : "保存该页"}
         </button>
         <button
           type="button"

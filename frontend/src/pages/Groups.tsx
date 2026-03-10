@@ -115,7 +115,7 @@ export default function Groups() {
         <button type="button" onClick={() => addRow(setUserRows)}>新增用户组</button>
         <button type="button" onClick={() => addRow(setGroupRows)}>新增群组</button>
         <button onClick={handleSave} disabled={saving}>
-          {saving ? "保存中…" : "保存当前页"}
+          {saving ? "保存中…" : "保存该页"}
         </button>
         <button
           type="button"

@@ -232,8 +232,11 @@
     max-width: none;
   }
   .app.sidebar-collapsed .main-inner {
-    padding-top: 2.5rem;
-    padding-left: calc(2rem + 2 * max(0.3rem, env(safe-area-inset-left, 0px)));
+    padding-top: 2.6rem;
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+    max-width: 640px;
+    margin: 0 auto;
   }
 
   .form-group textarea.json-edit-sm,
@@ -281,6 +284,22 @@
   font-size: 1.25rem;
   margin: 0 0 var(--space-sm) 0;
   font-weight: 600;
+}
+
+/* 标题行：标题 + 主操作按钮，左右分布，小屏换行 */
+.page-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+.page-header-row h2 {
+  margin: 0;
+}
+.page-header-row .button-row {
+  margin-bottom: 0;
 }
 
 .page .muted {
