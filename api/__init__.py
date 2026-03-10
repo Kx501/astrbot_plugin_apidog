@@ -294,12 +294,12 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             old_llm = set(
                 (a.get("id") or a.get("command") or "")
                 for a in old_apis
-                if a.get("as_llm_tool") is True
+                if a.get("as_tool") is True
             )
             new_llm = set(
                 (a.get("id") or a.get("command") or "")
                 for a in body["apis"]
-                if a.get("as_llm_tool") is True
+                if a.get("as_tool") is True
             )
             if block_changed or old_llm != new_llm:
                 _trigger_plugin_reload(request)

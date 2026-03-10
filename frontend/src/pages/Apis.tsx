@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { HeaderActionContext } from "../HeaderActionContext";
 import { getApis, putApis } from "../api";
 
@@ -46,7 +46,7 @@ export default function Apis() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSaveAll = () => {
+  const handleSaveAll = useCallback(() => {
     setSaving(true);
     setError(null);
     putApis(list)
@@ -58,7 +58,7 @@ export default function Apis() {
         setError(String(e));
         setSaving(false);
       });
-  };
+  }, [list]);
 
   const { setAction } = useContext(HeaderActionContext);
   const saveRef = useRef(handleSaveAll);
@@ -129,14 +129,14 @@ export default function Apis() {
   const toggleRegisterAsLlmTool = (index: number) => {
     const next = [...list];
     const row = next[index] as Record<string, unknown>;
-    next[index] = { ...row, as_llm_tool: row.as_llm_tool !== true };
+    next[index] = { ...row, as_tool: row.as_tool !== true };
     setList(next);
   };
   const addNew = () => {
     const newRow = {
       enabled: true,
       as_cmd: false,
-      as_llm_tool: false,
+      as_tool: false,
       id: "new",
       command: "new",
       name: "新接口",
@@ -534,7 +534,7 @@ export default function Apis() {
       </p>
       {error && <p className="error">{error}</p>}
       <div className="button-row">
-        <button onClick={addNew}>新增接口</button>
+        <button onClick={addNew}>添加接口</button>
       </div>
       <div className="table-scroll">
         <table className="table">
@@ -542,9 +542,18 @@ export default function Apis() {
             <tr>
               <th className="col-command">命令 <span className="field-origin">(command)</span></th>
               <th className="col-name">名称 <span className="field-origin">(name)</span></th>
-              <th>启用 <span className="field-origin">(enabled)</span></th>
-              <th>独立指令 <span className="field-origin">(as_cmd)</span></th>
-              <th>LLM 工具 <span className="field-origin">(as_llm_tool)</span></th>
+              <th className="col-flag">
+                启用
+                <span className="field-origin">(enabled)</span>
+              </th>
+              <th className="col-flag">
+                注册指令
+                <span className="field-origin">(as_cmd)</span>
+              </th>
+              <th className="col-flag">
+                LLM工具
+                <span className="field-origin">(as_tool)</span>
+              </th>
               <th>操作</th>
             </tr>
           </thead>
@@ -553,7 +562,7 @@ export default function Apis() {
               <tr key={i}>
                 <td>{String(row.command ?? row.id)}</td>
                 <td>{String(row.name ?? "")}</td>
-                <td>
+                <td className="col-flag">
                   <label className="toggle">
                     <input
                       type="checkbox"
@@ -563,7 +572,7 @@ export default function Apis() {
                     <span className="toggle__track" aria-hidden="true" />
                   </label>
                 </td>
-                <td>
+                <td className="col-flag">
                   <label className="toggle">
                     <input
                       type="checkbox"
@@ -573,11 +582,11 @@ export default function Apis() {
                     <span className="toggle__track" aria-hidden="true" />
                   </label>
                 </td>
-                <td>
+                <td className="col-flag">
                   <label className="toggle">
                     <input
                       type="checkbox"
-                      checked={row.as_llm_tool === true}
+                      checked={row.as_tool === true}
                       onChange={() => toggleRegisterAsLlmTool(i)}
                     />
                     <span className="toggle__track" aria-hidden="true" />

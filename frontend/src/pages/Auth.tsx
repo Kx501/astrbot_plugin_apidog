@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { HeaderActionContext } from "../HeaderActionContext";
 import { getAuth, putAuth } from "../api";
 
@@ -74,7 +74,7 @@ export default function Auth() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     const body = toApi(entries);
     setSaving(true);
     setError(null);
@@ -87,11 +87,13 @@ export default function Auth() {
         setError(String(e));
         setSaving(false);
       });
-  };
+  }, [entries]);
 
   const { setAction } = useContext(HeaderActionContext);
   const saveRef = useRef(handleSave);
-  saveRef.current = handleSave;
+  useEffect(() => {
+    saveRef.current = handleSave;
+  }, [handleSave]);
   useEffect(() => {
     setAction(
       <button
@@ -145,7 +147,7 @@ export default function Auth() {
       <p className="muted">敏感信息，请勿外泄。建议仅在内网或本机使用本管理页。</p>
       {error && <p className="error">{error}</p>}
       <div className="button-row">
-        <button onClick={add}>新增条目</button>
+        <button onClick={add}>添加条目</button>
         <button
           type="button"
           onClick={() => {

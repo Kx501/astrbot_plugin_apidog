@@ -106,6 +106,7 @@ export default function App() {
         >
           &#9776;
         </button>
+        <span className="app-header__title">ApiDog</span>
         <div className="app-header__actions">
           {headerAction}
         </div>
@@ -115,19 +116,6 @@ export default function App() {
         className={`sidebar ${sidebarCollapsed ? "sidebar--collapsed" : ""}`}
         aria-hidden={sidebarCollapsed}
       >
-        <div className="sidebar__head">
-          <span className="sidebar__title">ApiDog 管理</span>
-          <button
-            type="button"
-            className="sidebar__toggle"
-            onClick={toggleSidebar}
-            aria-label={sidebarCollapsed ? "展开侧栏" : "折叠侧栏"}
-            title={sidebarCollapsed ? "展开侧栏" : "折叠侧栏"}
-          >
-            <span className="sidebar-nav__full">{sidebarCollapsed ? "展开" : "折叠"}</span>
-            <span className="sidebar-nav__short">{sidebarCollapsed ? "展" : "折"}</span>
-          </button>
-        </div>
         <nav className="sidebar-nav">
           {LINKS.map(({ to, label, short }) => (
             <Link

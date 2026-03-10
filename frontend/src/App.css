@@ -31,7 +31,7 @@
   min-height: 100vh;
 }
 
-/* 顶栏：固定高度，仅菜单按钮 */
+/* 顶栏：固定高度，左侧菜单按钮 + 标题 + 右侧操作区 */
 .app-header {
   flex-shrink: 0;
   display: flex;
@@ -41,6 +41,18 @@
   padding: 0 var(--space-sm);
   background: var(--bg-header);
   border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.app-header__title {
+  font-size: 1rem;
+  font-weight: 600;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 .app-header__actions {
   margin-left: auto;
@@ -297,7 +309,7 @@
 
 /* ---------- 括号原文（小号） ---------- */
 .field-origin {
-  font-size: 0.68em;
+  font-size: 0.66em;
   color: var(--text-muted);
   font-weight: normal;
 }
@@ -548,12 +560,12 @@
 .toggle__track {
   display: block;
   width: 2.5em;
-  height: 1.35em;
+  height: 1.4em;
   border-radius: 999px;
-  background: var(--border);
+  background: linear-gradient(135deg, var(--border), color-mix(in srgb, var(--border) 60%, #ffffff 40%));
   flex-shrink: 0;
   position: relative;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .toggle__track::after {
@@ -565,13 +577,13 @@
   width: 1.05em;
   height: 1.05em;
   border-radius: 50%;
-  background: var(--text);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   transition: transform 0.2s ease;
 }
 
 .toggle input:checked + .toggle__track {
-  background: var(--nav-active);
+  background: linear-gradient(135deg, var(--nav-active), color-mix(in srgb, var(--nav-active) 70%, #ffffff 30%));
 }
 
 .toggle input:checked + .toggle__track::after {
@@ -640,7 +652,7 @@
 .table th,
 .table td {
   border: 1px solid var(--border);
-  padding: var(--space-sm) 0.75rem;
+  padding: 0.35rem 0.75rem;
   text-align: left;
   vertical-align: middle;
 }
@@ -657,6 +669,18 @@
 
 .table th.col-name {
   min-width: 6em;
+}
+
+/* 表头中的字段注释放在主文字下方，整体更紧凑 */
+.table th .field-origin {
+  display: block;
+  margin-top: -0.1rem;
+}
+
+/* 接口列表中开关列：列宽更紧凑，减少左右空白 */
+.table th.col-flag {
+  min-width: 3.5rem;
+  max-width: 4rem;
 }
 
 .table td input.table-input {

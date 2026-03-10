@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { HeaderActionContext } from "../HeaderActionContext";
 import { getGroups, putGroups } from "../api";
 
@@ -45,7 +45,7 @@ export default function Groups() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     const body = {
       user_groups: fromRows(userRows),
       group_groups: fromRows(groupRows),
@@ -61,11 +61,13 @@ export default function Groups() {
         setError(String(e));
         setSaving(false);
       });
-  };
+  }, [userRows, groupRows]);
 
   const { setAction } = useContext(HeaderActionContext);
   const saveRef = useRef(handleSave);
-  saveRef.current = handleSave;
+  useEffect(() => {
+    saveRef.current = handleSave;
+  }, [handleSave]);
   useEffect(() => {
     setAction(
       <button
@@ -130,8 +132,8 @@ export default function Groups() {
       <h2>用户/群组 <span className="field-origin">(groups.json)</span></h2>
       {error && <p className="error">{error}</p>}
       <div className="button-row">
-        <button type="button" onClick={() => addRow(setUserRows)}>新增用户组</button>
-        <button type="button" onClick={() => addRow(setGroupRows)}>新增群组</button>
+        <button type="button" onClick={() => addRow(setUserRows)}>添加用户组</button>
+        <button type="button" onClick={() => addRow(setGroupRows)}>添加群组</button>
         <button
           type="button"
           onClick={() => {

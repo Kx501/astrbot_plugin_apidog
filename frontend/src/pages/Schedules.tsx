@@ -60,7 +60,7 @@ export default function Schedules() {
       <h2>计划任务 <span className="field-origin">(schedules.json)</span></h2>
       {error && <p className="error">{error}</p>}
       <div className="button-row">
-        <button onClick={add}>新增任务</button>
+        <button onClick={add}>添加任务</button>
       </div>
       <div className="table-scroll">
         <table className="table">
