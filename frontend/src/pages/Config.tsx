@@ -37,7 +37,7 @@ export default function Config() {
   useEffect(() => {
     setAction(
       <button type="button" className="app-header__btn" onClick={() => saveRef.current()} disabled={saving}>
-        {saving ? "保存中…" : "保存该页"}
+        {saving ? "保存中…" : "保存此页"}
       </button>
     );
     return () => setAction(null);

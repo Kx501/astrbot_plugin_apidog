@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { HeaderActionContext } from "../HeaderActionContext";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { getGroups, putGroups } from "../api";
 
 type GroupRow = { name: string; members: string };
@@ -33,6 +34,7 @@ export default function Groups() {
   const [saving, setSaving] = useState(false);
   const [raw, setRaw] = useState("");
   const [rawJsonOpen, setRawJsonOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ kind: "user" | "group"; index: number } | null>(null);
 
   useEffect(() => {
     getGroups()
@@ -76,7 +78,7 @@ export default function Groups() {
         onClick={() => saveRef.current()}
         disabled={saving}
       >
-        {saving ? "保存中…" : "保存该页"}
+        {saving ? "保存中…" : "保存此页"}
       </button>
     );
     return () => setAction(null);
@@ -123,7 +125,16 @@ export default function Groups() {
     setRows((prev) => [...prev, { name: "", members: "" }]);
   };
   const removeRow = (setRows: React.Dispatch<React.SetStateAction<GroupRow[]>>, index: number) => {
-    setRows((prev) => prev.filter((_, i) => i !== index));
+    setConfirmDelete({ kind: setRows === setUserRows ? "user" : "group", index });
+  };
+  const doRemove = () => {
+    if (!confirmDelete) return;
+    if (confirmDelete.kind === "user") {
+      setUserRows((prev) => prev.filter((_, i) => i !== confirmDelete.index));
+    } else {
+      setGroupRows((prev) => prev.filter((_, i) => i !== confirmDelete.index));
+    }
+    setConfirmDelete(null);
   };
 
   if (loading) return <p>加载中…</p>;
@@ -185,7 +196,7 @@ export default function Groups() {
                   </td>
                   <td>
                     <span className="button-group">
-                      <button onClick={() => removeRow(setUserRows, i)}>删除</button>
+                      <button type="button" onClick={() => removeRow(setUserRows, i)}>删除</button>
                     </span>
                   </td>
                 </tr>
@@ -227,7 +238,7 @@ export default function Groups() {
                   </td>
                   <td>
                     <span className="button-group">
-                      <button onClick={() => removeRow(setGroupRows, i)}>删除</button>
+                      <button type="button" onClick={() => removeRow(setGroupRows, i)}>删除</button>
                     </span>
                   </td>
                 </tr>
@@ -237,6 +248,15 @@ export default function Groups() {
         </div>
       </section>
 
+      {confirmDelete !== null && (
+        <ConfirmDialog
+          open={true}
+          title="确认删除"
+          message="确定要删除此分组吗？"
+          onConfirm={doRemove}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
       {rawJsonOpen && (
         <div
           className="modal-backdrop"
@@ -255,7 +275,7 @@ export default function Groups() {
           >
             <div className="modal-header">
               <h3 id="groups-raw-title">编辑 JSON</h3>
-              <button type="button" className="modal-close" onClick={() => setRawJsonOpen(false)} aria-label="关闭">×</button>
+              <button type="button" className="modal-close" onClick={() => setRawJsonOpen(false)} aria-label="关闭">❌</button>
             </div>
             <div className="modal-body">
               <textarea

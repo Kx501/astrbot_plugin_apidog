@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { HeaderActionContext } from "../HeaderActionContext";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { getAuth, putAuth } from "../api";
 
 type AuthEntry = {
@@ -63,6 +64,7 @@ export default function Auth() {
   const [saving, setSaving] = useState(false);
   const [raw, setRaw] = useState("");
   const [rawJsonOpen, setRawJsonOpen] = useState(false);
+  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(null);
 
   useEffect(() => {
     getAuth()
@@ -102,7 +104,7 @@ export default function Auth() {
         onClick={() => saveRef.current()}
         disabled={saving}
       >
-        {saving ? "保存中…" : "保存该页"}
+        {saving ? "保存中…" : "保存此页"}
       </button>
     );
     return () => setAction(null);
@@ -138,7 +140,11 @@ export default function Auth() {
     });
   };
   const add = () => setEntries((prev) => [...prev, { name: "", type: "bearer", token: "" }]);
-  const remove = (index: number) => setEntries((prev) => prev.filter((_, i) => i !== index));
+  const remove = (index: number) => setConfirmDeleteIndex(index);
+  const doRemove = (index: number) => {
+    setEntries((prev) => prev.filter((_, i) => i !== index));
+    setConfirmDeleteIndex(null);
+  };
 
   if (loading) return <p>加载中…</p>;
   return (
@@ -247,7 +253,7 @@ export default function Auth() {
                 </td>
                 <td>
                   <span className="button-group">
-                    <button onClick={() => remove(i)}>删除</button>
+                    <button type="button" onClick={() => remove(i)}>删除</button>
                   </span>
                 </td>
               </tr>
@@ -256,6 +262,15 @@ export default function Auth() {
         </table>
       </div>
 
+      {confirmDeleteIndex !== null && (
+        <ConfirmDialog
+          open={true}
+          title="确认删除"
+          message="确定要删除此认证项吗？"
+          onConfirm={() => doRemove(confirmDeleteIndex)}
+          onCancel={() => setConfirmDeleteIndex(null)}
+        />
+      )}
       {rawJsonOpen && (
         <div
           className="modal-backdrop"
@@ -274,7 +289,7 @@ export default function Auth() {
           >
             <div className="modal-header">
               <h3 id="auth-raw-title">编辑 JSON</h3>
-              <button type="button" className="modal-close" onClick={() => setRawJsonOpen(false)} aria-label="关闭">×</button>
+              <button type="button" className="modal-close" onClick={() => setRawJsonOpen(false)} aria-label="关闭">❌</button>
             </div>
             <div className="accordion-section open">
               <div className="accordion-head">JSON 内容</div>

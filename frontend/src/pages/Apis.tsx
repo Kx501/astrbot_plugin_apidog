@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { HeaderActionContext } from "../HeaderActionContext";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { getApis, putApis } from "../api";
 
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
@@ -38,6 +39,7 @@ export default function Apis() {
   const [rawHeaders, setRawHeaders] = useState<string | null>(null);
   const [rawParams, setRawParams] = useState<string | null>(null);
   const [rawBody, setRawBody] = useState<string | null>(null);
+  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(null);
 
   useEffect(() => {
     getApis()
@@ -73,7 +75,7 @@ export default function Apis() {
         onClick={() => saveRef.current()}
         disabled={saving}
       >
-        {saving ? "保存中…" : "保存该页"}
+        {saving ? "保存中…" : "保存此页"}
       </button>
     );
     return () => setAction(null);
@@ -111,8 +113,12 @@ export default function Apis() {
       });
   };
   const remove = (index: number) => {
+    setConfirmDeleteIndex(index);
+  };
+  const doRemove = (index: number) => {
     setList(list.filter((_, i) => i !== index));
     if (editIndex === index) setEditIndex(null);
+    setConfirmDeleteIndex(null);
   };
   const toggleEnabled = (index: number) => {
     const next = [...list];
@@ -544,8 +550,8 @@ export default function Apis() {
         <table className="table">
           <thead>
             <tr>
-              <th className="col-command">命令 <span className="field-origin">(command)</span></th>
               <th className="col-name">名称 <span className="field-origin">(name)</span></th>
+              <th className="col-command">命令 <span className="field-origin">(command)</span></th>
               <th className="col-flag">
                 启用
                 <span className="field-origin">(enabled)</span>
@@ -564,8 +570,8 @@ export default function Apis() {
           <tbody>
             {list.map((row, i) => (
               <tr key={i}>
-                <td>{String(row.command ?? row.id)}</td>
                 <td>{String(row.name ?? "")}</td>
+                <td>{String(row.command ?? row.id)}</td>
                 <td className="col-flag">
                   <label className="toggle">
                     <input
@@ -598,8 +604,8 @@ export default function Apis() {
                 </td>
                 <td>
                   <span className="button-group">
-                    <button onClick={() => startEdit(i)}>编辑</button>
-                    <button onClick={() => remove(i)}>删除</button>
+                    <button type="button" onClick={() => startEdit(i)}>编辑</button>
+                    <button type="button" onClick={() => remove(i)}>删除</button>
                   </span>
                 </td>
               </tr>
@@ -607,6 +613,15 @@ export default function Apis() {
           </tbody>
         </table>
       </div>
+      {confirmDeleteIndex !== null && (
+        <ConfirmDialog
+          open={true}
+          title="确认删除"
+          message="确定要删除此接口吗？"
+          onConfirm={() => doRemove(confirmDeleteIndex)}
+          onCancel={() => setConfirmDeleteIndex(null)}
+        />
+      )}
       {editIndex !== null && (
         <div
           className="modal-backdrop"

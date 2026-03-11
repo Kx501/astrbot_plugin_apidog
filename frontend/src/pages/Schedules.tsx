@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { HeaderActionContext } from "../HeaderActionContext";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { getSchedules, putSchedules } from "../api";
 
 export default function Schedules() {
@@ -7,6 +8,7 @@ export default function Schedules() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(null);
 
   useEffect(() => {
     getSchedules()
@@ -39,7 +41,7 @@ export default function Schedules() {
         onClick={() => saveRef.current()}
         disabled={saving}
       >
-        {saving ? "保存中…" : "保存该页"}
+        {saving ? "保存中…" : "保存此页"}
       </button>
     );
     return () => setAction(null);
@@ -50,7 +52,11 @@ export default function Schedules() {
     next[index] = { ...next[index], [key]: value };
     setList(next);
   };
-  const remove = (index: number) => setList(list.filter((_, i) => i !== index));
+  const remove = (index: number) => setConfirmDeleteIndex(index);
+  const doRemove = (index: number) => {
+    setList(list.filter((_, i) => i !== index));
+    setConfirmDeleteIndex(null);
+  };
   const add = () =>
     setList([...list, { api_key: "", cron: "0 9 * * *", args: [], named: {}, target_session: "", enabled: true }]);
 
@@ -112,7 +118,7 @@ export default function Schedules() {
                 </td>
                 <td>
                   <span className="button-group">
-                    <button onClick={() => remove(i)}>删除</button>
+                    <button type="button" onClick={() => remove(i)}>删除</button>
                   </span>
                 </td>
               </tr>
@@ -120,6 +126,15 @@ export default function Schedules() {
           </tbody>
         </table>
       </div>
+      {confirmDeleteIndex !== null && (
+        <ConfirmDialog
+          open={true}
+          title="确认删除"
+          message="确定要删除此计划任务吗？"
+          onConfirm={() => doRemove(confirmDeleteIndex)}
+          onCancel={() => setConfirmDeleteIndex(null)}
+        />
+      )}
     </div>
   );
 }

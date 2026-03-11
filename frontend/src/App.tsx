@@ -101,10 +101,10 @@ export default function App() {
           type="button"
           className="app-header__menu"
           onClick={toggleSidebar}
-          aria-label={sidebarCollapsed ? "打开菜单" : "折叠侧栏"}
-          title={sidebarCollapsed ? "打开菜单" : "折叠侧栏"}
+          aria-label={sidebarCollapsed ? "打开菜单" : "折叠菜单"}
+          title={sidebarCollapsed ? "打开菜单" : "折叠菜单"}
         >
-          &#9776;
+          ☰
         </button>
         <span className="app-header__title">ApiDog</span>
         <div className="app-header__actions">
