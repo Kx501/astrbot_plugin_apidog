@@ -1,4 +1,4 @@
-# ApiDog（AstrBot 插件）
+# ApiDog（类ApiFox AstrBot 插件）
 
 可配置 API 与指令绑定，通过单指令 `/api <接口名> [参数...]` 调用配置的 HTTP 接口。
 
