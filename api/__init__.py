@@ -19,7 +19,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import APIRouter
 
 from ..core import loader
-from ..core.command_gen import inject_commands_into_main, inject_commands_if_changed
+from ..core.command_gen import inject_commands_if_changed
+from ..core.tool_gen import inject_llm_tools_if_changed
 from ..core.log_helper import logger
 from ..runtime import scheduler as scheduler_mod
 
@@ -260,9 +261,10 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         try:
             apis = loader.load_apis(data_dir)
             inject_commands_if_changed(_MAIN_PY_PATH, apis)
+            inject_llm_tools_if_changed(_MAIN_PY_PATH, apis)
             _trigger_plugin_reload(request)
         except Exception:
-            logger.exception("Failed to inject commands into main after PUT config")
+            logger.exception("Failed to inject commands/LLM tools into main after PUT config")
         return {"status": "ok"}
 
     @router.get("/apis")
@@ -290,7 +292,8 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         _write_json_atomic(path, {"apis": body["apis"]})
         loader.invalidate_apis(data_dir)
         try:
-            block_changed = inject_commands_if_changed(_MAIN_PY_PATH, body["apis"])
+            cmd_changed = inject_commands_if_changed(_MAIN_PY_PATH, body["apis"])
+            llm_changed = inject_llm_tools_if_changed(_MAIN_PY_PATH, body["apis"])
             old_llm = set(
                 (a.get("id") or a.get("command") or "")
                 for a in old_apis
@@ -301,7 +304,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
                 for a in body["apis"]
                 if a.get("as_tool") is True
             )
-            if block_changed or old_llm != new_llm:
+            if cmd_changed or llm_changed or old_llm != new_llm:
                 _trigger_plugin_reload(request)
         except Exception:
             logger.exception("Failed to inject commands into main after PUT apis")

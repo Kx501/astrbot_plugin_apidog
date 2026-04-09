@@ -20,7 +20,12 @@ from .core import CallContext, CallResult, run
 from .core.loader import get_api_port, load_apis, load_config
 from .core.log_helper import set_apidog_logger
 from .core.command_gen import block_content_is_pass, inject_commands_into_main
-from .core.tool_gen import register_apidog_llm_tools
+from .core.tool_gen import (
+    apis_for_llm_tools,
+    execute_apidog_llm_tool,
+    inject_llm_tools_into_main,
+    llm_tool_block_content_is_pass,
+)
 from .runtime import start_scheduler, stop_scheduler
 
 
@@ -45,10 +50,13 @@ class ApiDogStar(Star):
         self._uvicorn_thread = threading.Thread(target=self._uvicorn_server.run, daemon=True)
         self._uvicorn_thread.start()
         main_path = Path(__file__).resolve()
+        try:
+            apis = load_apis(self._data_dir)
+            _ = load_config(self._data_dir)
+        except Exception:
+            apis = []
         if block_content_is_pass(main_path):
             try:
-                apis = load_apis(self._data_dir)
-                config = load_config(self._data_dir)
                 inject_commands_into_main(main_path, apis)
                 enabled_cmd = [
                     a for a in apis
@@ -59,17 +67,14 @@ class ApiDogStar(Star):
                     _ab_logger.info("已根据配置写回独立指令到 main.py，重载插件后生效")
             except Exception:
                 _ab_logger.exception("首次加载写回独立指令失败")
-        try:
-            apis = load_apis(self._data_dir)
-            register_apidog_llm_tools(
-                self.context,
-                self._data_dir,
-                apis,
-                run,
-                module_path=self.__class__.__module__,
-            )
-        except Exception:
-            _ab_logger.exception("注册 ApiDog LLM 工具失败")
+        if llm_tool_block_content_is_pass(main_path):
+            try:
+                inject_llm_tools_into_main(main_path, apis)
+                if apis_for_llm_tools(apis):
+                    self._pending_reload_after_inject = True
+                    _ab_logger.info("已根据配置写回 LLM 工具（@filter.llm_tool）到 main.py，重载插件后生效")
+            except Exception:
+                _ab_logger.exception("首次加载写回 LLM 工具失败")
 
     async def initialize(self) -> None:
         """注册保存后自动重载当前插件的回调（供配置页 PUT 后调用）。"""
@@ -240,3 +245,7 @@ class ApiDogStar(Star):
     # --- BEGIN GENERATED COMMANDS ---
     pass
     # --- END GENERATED COMMANDS ---
+
+    # --- BEGIN GENERATED LLM TOOLS ---
+    pass
+    # --- END GENERATED LLM TOOLS ---
