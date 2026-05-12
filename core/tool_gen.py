@@ -22,6 +22,7 @@ except ImportError:
 
 _LLM_BEGIN_MARKER = "# --- BEGIN GENERATED LLM TOOLS ---"
 _LLM_END_MARKER = "# --- END GENERATED LLM TOOLS ---"
+_PLACEHOLDER_ARGS = re.compile(r"\{\{args\.(\d+)\}\}")
 
 
 def apis_for_llm_tools(apis: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -39,6 +40,78 @@ def _llm_safe_method_name(index: int) -> str:
 def _llm_one_line(s: str) -> str:
     return " ".join((s or "").split())
 
+def _max_args_index(value: Any) -> int | None:
+    """Scan nested value (str/dict/list) for {{args.N}} and return max N, or None if absent."""
+    found: int | None = None
+    if isinstance(value, str):
+        for m in _PLACEHOLDER_ARGS.finditer(value):
+            try:
+                idx = int(m.group(1))
+            except Exception:
+                continue
+            found = idx if found is None else max(found, idx)
+        return found
+    if isinstance(value, dict):
+        for k, v in value.items():
+            found_k = _max_args_index(k)
+            found_v = _max_args_index(v)
+            for x in (found_k, found_v):
+                if x is None:
+                    continue
+                found = x if found is None else max(found, x)
+        return found
+    if isinstance(value, list):
+        for v in value:
+            x = _max_args_index(v)
+            if x is None:
+                continue
+            found = x if found is None else max(found, x)
+        return found
+    return None
+
+
+def _infer_llm_positional_count(api: dict[str, Any]) -> int:
+    """
+    Only supports {{args.N}} across url/headers/params/body.
+    Returns how many positional args should be generated.
+    """
+    max_idx: int | None = None
+    for field in ("url", "headers", "params", "body"):
+        x = _max_args_index(api.get(field))
+        if x is None:
+            continue
+        max_idx = x if max_idx is None else max(max_idx, x)
+    return 0 if max_idx is None else (max_idx + 1)
+
+
+def _py_ident(s: str) -> str:
+    """Best-effort sanitize to a valid Python identifier (for generated method params)."""
+    s = (s or "").strip()
+    s = re.sub(r"\W", "_", s)
+    if not s or s[0].isdigit():
+        s = f"p_{s}"
+    return s
+
+
+def _tool_params_desc_list(api: dict[str, Any], count: int) -> list[str]:
+    """
+    Read per-parameter descriptions for LLM tools.
+
+    Supported forms in api:
+    - tool_params_desc: ["城市名", "语言"]  (matched by args index)
+    """
+    raw = api.get("tool_params_desc")
+    out = [""] * max(0, int(count))
+    if not isinstance(raw, list):
+        return out
+    for i in range(min(len(raw), len(out))):
+        v = raw[i]
+        if isinstance(v, str):
+            out[i] = v.strip()
+        else:
+            out[i] = str(v).strip() if v is not None else ""
+    return out
+
 
 def _build_llm_tool_methods(apis: list[dict[str, Any]]) -> str:
     """Build class-body lines (4-space indent) for ApiDogStar."""
@@ -51,25 +124,43 @@ def _build_llm_tool_methods(apis: list[dict[str, Any]]) -> str:
         desc = _llm_one_line(
             (api.get("description") or "").strip() or f"调用接口：{api_key}"
         )
-        args_desc = _llm_one_line(
-            (api.get("args_desc") or api.get("tool_args_desc") or "该工具没有参数，禁止填写任何内容。").strip()
-        )
         name_literal = json.dumps(api_key, ensure_ascii=False)
         method = _llm_safe_method_name(i)
-        lines.append(f"    @filter.llm_tool(name={name_literal})")
-        lines.append(
-            f"    async def {method}(self, event: AstrMessageEvent, args: str = '') -> str:"
-        )
-        lines.append('        """')
-        lines.append(f"        {desc}")
-        lines.append("")
-        lines.append("        Args:")
-        lines.append(f"            args(string): {args_desc}")
-        lines.append('        """')
-        lines.append(
-            f"        return await execute_apidog_llm_tool(self, event, {name_literal}, args)"
-        )
-        lines.append("")
+        argc = _infer_llm_positional_count(api)
+        if argc > 0:
+            desc_list = _tool_params_desc_list(api, argc)
+            sig_params: list[str] = []
+            doc_params: list[tuple[str, str]] = []  # (ident, desc)
+            raw_parts: list[str] = []
+
+            for idx in range(argc):
+                ident = f"arg{idx}"
+                sig_params.append(f"{ident}: str = ''")
+                d = desc_list[idx] or f"参数{idx}"
+                doc_params.append((ident, d))
+                raw_parts.append(f"({ident}.strip())")
+
+            sig = ", ".join(sig_params)
+            lines.append(f"    @filter.llm_tool(name={name_literal})")
+            lines.append(f"    async def {method}(self, event: AstrMessageEvent, {sig}) -> str:")
+            lines.append('        """')
+            lines.append(f"        {desc}")
+            lines.append("")
+            lines.append("        Args:")
+            for ident, d in doc_params:
+                lines.append(f"            {ident}(string): {d}")
+            lines.append('        """')
+            lines.append(f"        raw = ' '.join([x for x in [{', '.join(raw_parts)}] if x])")
+            lines.append(f"        return await execute_apidog_llm_tool(self, event, {name_literal}, raw)")
+            lines.append("")
+        else:
+            lines.append(f"    @filter.llm_tool(name={name_literal})")
+            lines.append(f"    async def {method}(self, event: AstrMessageEvent) -> str:")
+            lines.append('        """')
+            lines.append(f"        {desc}")
+            lines.append('        """')
+            lines.append(f"        return await execute_apidog_llm_tool(self, event, {name_literal}, '')")
+            lines.append("")
     return "\n".join(lines) if lines else "    pass"
 
 

@@ -220,6 +220,63 @@
   display: none;
 }
 
+/* ---------- key/value editor (tool_params_desc) ---------- */
+.kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.kv-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.kv-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.kv-index {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.kv-input {
+  width: 100%;
+  max-width: none !important;
+}
+
+.kv-actions {
+  margin-top: var(--space-sm);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.kv-add,
+.kv-del {
+  padding: 0.25em 0.8em;
+  font-size: 0.9rem;
+}
+
+/* 弹窗内：分组最后一个编辑控件不要多余底部空白 */
+.modal .accordion-section .accordion-body .form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* 弹窗内 JSON 编辑区：去掉 textarea 自带的额外上下 margin，避免“请求”分组底部空白看起来翻倍 */
+.modal .accordion-section .accordion-body .json-edit-sm,
+.modal .accordion-section .accordion-body .json-edit {
+  margin-bottom: 0;
+}
+
 .sidebar--collapsed .sidebar-nav__short {
   display: inline;
 }

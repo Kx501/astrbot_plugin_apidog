@@ -274,7 +274,6 @@ export default function Auth() {
       {rawJsonOpen && (
         <div
           className="modal-backdrop"
-          onClick={() => setRawJsonOpen(false)}
           onKeyDown={(e) => e.key === "Escape" && setRawJsonOpen(false)}
           role="button"
           tabIndex={0}

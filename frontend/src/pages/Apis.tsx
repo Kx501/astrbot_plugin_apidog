@@ -23,6 +23,11 @@ function safeJsonParse(str: string): unknown {
   }
 }
 
+function toolParamsDescListFromUnknown(val: unknown): string[] {
+  if (Array.isArray(val)) return val.map((x) => (typeof x === "string" ? x : String(x ?? "")));
+  return [];
+}
+
 export default function Apis() {
   const [list, setList] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +35,7 @@ export default function Apis() {
   const [saving, setSaving] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editRow, setEditRow] = useState<Record<string, unknown>>({});
+  const [toolParamDescs, setToolParamDescs] = useState<string[]>([]);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [openBasic, setOpenBasic] = useState(true);
   const [openRequest, setOpenRequest] = useState(true);
@@ -83,7 +89,9 @@ export default function Apis() {
 
   const startEdit = (index: number) => {
     setEditIndex(index);
-    setEditRow({ ...list[index] });
+    const row = { ...list[index] };
+    setEditRow(row);
+    setToolParamDescs(toolParamsDescListFromUnknown((row as Record<string, unknown>).tool_params_desc));
     setJsonError(null);
     setRawHeaders(null);
     setRawParams(null);
@@ -156,7 +164,7 @@ export default function Apis() {
       response_media_from: "url",
       description: "",
       help_text: "",
-      args_desc: "",
+      tool_params_desc: [] as string[],
       auth: undefined as string | undefined,
       allowed_user_groups: [] as string[],
       allowed_group_groups: [] as string[],
@@ -168,6 +176,7 @@ export default function Apis() {
     setList([...list, newRow]);
     setEditIndex(list.length);
     setEditRow({ ...newRow });
+    setToolParamDescs([]);
   };
 
   const setJsonField = (key: "headers" | "params" | "body", raw: string) => {
@@ -210,6 +219,7 @@ export default function Apis() {
   const retryMax: number | "" =
     retryCfg === false || retryCfg === 0 ? 0 : (retryObj.max_attempts ?? "");
   const retryBackoff = retryObj.backoff_seconds ?? "";
+  // tool_params_desc is stored in editRow as string[] (args index).
 
   const closeEdit = () => {
     setEditIndex(null);
@@ -289,13 +299,68 @@ export default function Apis() {
                 />
               </div>
               <div className="form-group">
-                <label>工具参数说明 <span className="field-origin">(args_desc)</span></label>
-                <textarea
-                  value={String(editRow.args_desc ?? "")}
-                  onChange={(e) => setEditRow({ ...editRow, args_desc: e.target.value })}
-                  rows={3}
-                  placeholder="选填：LLM 工具 args 说明，如：查询天气工具的“城市名”"
-                />
+                <label>工具参数说明 <span className="field-origin">(tool_params_desc)</span></label>
+                <p className="muted">
+                  用于多参数工具：按顺序对应 arg0/arg1/…（也就是 {"{{"}args.0{"}}"} / {"{{"}args.1{"}}"} …）。
+                </p>
+                <div className="kv-list">
+                  {toolParamDescs.length === 0 && (
+                    <p className="muted" style={{ marginTop: 0 }}>
+                      还没有参数说明，可点击“添加一行”。
+                    </p>
+                  )}
+                  {toolParamDescs.map((v, idx) => (
+                    <div key={idx} className="kv-row">
+                      <div className="kv-head">
+                        <div className="kv-index">arg{idx}</div>
+                        <button
+                          type="button"
+                          className="kv-del"
+                          onClick={() => {
+                            const next = toolParamDescs.filter((_, i) => i !== idx);
+                            setToolParamDescs(next);
+                            setEditRow({
+                              ...editRow,
+                              tool_params_desc: next,
+                            });
+                          }}
+                        >
+                          删除
+                        </button>
+                      </div>
+                      <input
+                        className="input-wide kv-input"
+                        value={v}
+                        placeholder={`arg${idx} 说明，如 城市名`}
+                        onChange={(e) => {
+                          const next = [...toolParamDescs];
+                          next[idx] = e.target.value;
+                          setToolParamDescs(next);
+                          setEditRow({
+                            ...editRow,
+                            tool_params_desc: next,
+                          });
+                        }}
+                      />
+                    </div>
+                  ))}
+                  <div className="kv-actions">
+                    <button
+                      type="button"
+                      className="kv-add"
+                      onClick={() => {
+                        const next = [...toolParamDescs, ""];
+                        setToolParamDescs(next);
+                        setEditRow({
+                          ...editRow,
+                          tool_params_desc: next,
+                        });
+                      }}
+                    >
+                      添加一行
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -625,7 +690,6 @@ export default function Apis() {
       {editIndex !== null && (
         <div
           className="modal-backdrop"
-          onClick={closeEdit}
           onKeyDown={(e) => e.key === "Escape" && closeEdit()}
           role="button"
           tabIndex={0}
