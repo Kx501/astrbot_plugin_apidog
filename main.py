@@ -29,12 +29,6 @@ from .core.tool_gen import (
 from .runtime import start_scheduler, stop_scheduler
 
 
-@register(
-    "ApiDog",
-    "可配置 API 与指令绑定，通过指令调用 API。用法: /api <接口名> [参数...]",
-    "1.3.6",
-    "https://github.com/Kx501/astrbot_plugin_apidog",
-)
 class ApiDogStar(Star):
     def __init__(self, context: Context) -> None:
         super().__init__(context)

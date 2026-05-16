@@ -18,8 +18,15 @@
 - `/api help`：列出已配置接口
 - `/api help <接口名>`：查看该接口详细帮助
 - 支持引号包裹含空格参数、`key=value` 命名参数
-- **独立指令**：接口中开启 `as_cmd` 后，会为该接口生成独立指令（如 `/天气 北京`），保存后自动重载生效
-- **LLM 工具**：接口中开启 `as_tool` 后，该接口会注册为 AstrBot 函数工具，供对话中的 LLM 调用
+- **独立指令**：接口中开启 `as_cmd` 后，会为该接口生成独立指令（如 `/天气 北京`），保存配置后自动重载插件生效
+- **LLM 工具**：接口中开启 `as_tool` 后，会按 AstrBot 推荐的 `@filter.llm_tool` 方式注册为函数工具，供对话中的 LLM 调用；保存配置后自动重载插件生效
+
+## LLM 工具（`as_tool`）
+
+- 注册方式：根据 `apis.json` 在插件 `main.py` 中生成 `@filter.llm_tool` 方法（符合 [AstrBot 文档](https://docs.astrbot.app/dev/star/guides/ai.html#%E5%AE%9A%E4%B9%89-tool) 的装饰器写法）。
+- **参数占位符**：生成工具时仅识别 `{{args.0}}`、`{{args.1}}` …（在 **url / headers / params / body** 任意位置扫描）。无此类占位符则生成**无参工具**。
+- **参数说明**：`tool_params_desc` 为字符串数组，按顺序对应 `arg0`、`arg1` …，写入工具 docstring 的 `Args:` 段，供模型理解各参数含义。可在配置页「工具参数说明」中编辑。
+- **与指令的区别**：`/api` 与独立指令仍支持 `{{named.xxx}}` 命名参数；LLM 工具侧请统一用 `{{args.N}}` 表达可变参数，避免模型参数 schema 与占位符不一致。
 
 ## API 配置要点
 
@@ -32,7 +39,7 @@
 - **响应**：`response_type`（text / image / video / audio）、`response_path`（JSON 取结果路径）、`response_media_from`（url 或 body，body 表示接口直接返回二进制媒体）
 - **认证**：`auth` 或 `auth_ref`（填 auth.json 中某条认证的键名，如 `default`）
 - **权限**：`allowed_user_groups`、`allowed_group_groups`（组在 groups.json 中定义）
-- **说明**：`description`（列表用）、`help_text` / `help`（详情页自定义）、`args_desc`（工具参数说明，LLM 工具启用时给模型看的 args 说明，选填）
+- **说明**：`description`（列表用）、`help_text` / `help`（详情页自定义）、`tool_params_desc`（LLM 工具且存在 `{{args.N}}` 时，按索引填写各参数说明，如 `["城市名", "语言"]`）
 - **开关**：`enabled`（默认 true）、`as_cmd`（独立指令，默认 false）、`as_tool`（LLM 工具，默认 false）
 - **限流**：`rate_limit`（按 user_id+api_key）、`rate_limit_global`（按 api_key 全局），格式 `{"max": N, "window_seconds": S}`
 - **超时与重试**：`timeout_seconds`、`retry`（false/0 或不配则用 config 默认；对象 `{ "max_attempts": N, "backoff_seconds": S }`）
