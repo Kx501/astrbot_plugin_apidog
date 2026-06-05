@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from . import loader
+from .placeholders import infer_tool_params
 
 
 def build_help_message(apis: list[dict], target: str | None = None) -> str:
@@ -24,7 +24,7 @@ def build_help_message(apis: list[dict], target: str | None = None) -> str:
 
 
 def _build_list(apis: list[dict]) -> str:
-    lines = ["用法: /api <接口名> [参数...]", ""]
+    lines = ["用法: /api <接口名> [键=值 ...]", ""]
     for api in apis:
         cmd = api.get("command") or api.get("id") or "?"
         name = api.get("name") or cmd
@@ -46,67 +46,28 @@ def _build_detail(api: dict) -> str:
         lines.append(help_text.strip())
         lines.append("")
 
-    params = api.get("params") or {}
-    pos_names, named_optional, named_required = _infer_params(params)
-    if pos_names or named_optional or named_required:
-        parts = []
-        if pos_names:
-            parts.append(", ".join(pos_names))
-        all_named = list(named_required) + [f"{k}(可选)" for k in named_optional]
-        if all_named:
-            parts.append(", ".join(all_named))
+    specs = infer_tool_params(api)
+    if specs:
+        required = [s.name for s in specs if not s.optional]
+        optional = [s.name for s in specs if s.optional]
+        parts: list[str] = []
+        if required:
+            parts.append(", ".join(required))
+        if optional:
+            parts.append(", ".join(f"{k}(可选)" for k in optional))
         lines.append("参数: " + "；".join(parts))
     else:
         lines.append("参数: 无")
     lines.append("")
 
-    example = _build_example(command, params)
+    example = _build_example(command, api)
     lines.append("示例: " + example)
     return "\n".join(lines)
 
 
-_PLACEHOLDER_ARGS = re.compile(r"\{\{args\.(\d+)\}\}")
-_PLACEHOLDER_NAMED = re.compile(r"\{\{named\.([^}|]+)(?:\|([^}]*))?\}\}")
-
-
-def _infer_params(params: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:
-    """Return (positional_names_in_order, optional_named_keys, required_named_keys)."""
-    positional: dict[int, str] = {}
-    named_optional: list[str] = []
-    named_required: list[str] = []
-    seen_named: set[str] = set()
-
-    for key, val in (params or {}).items():
-        s = str(val) if val is not None else ""
-        m_args = _PLACEHOLDER_ARGS.search(s)
-        m_named = _PLACEHOLDER_NAMED.search(s)
-        if m_args:
-            idx = int(m_args.group(1))
-            positional[idx] = key
-        elif m_named:
-            name = m_named.group(1).strip()
-            default = m_named.group(2)
-            if name not in seen_named:
-                seen_named.add(name)
-                if default is not None:
-                    named_optional.append(name)
-                else:
-                    named_required.append(name)
-
-    pos_names = [positional[i] for i in sorted(positional.keys())]
-    return pos_names, named_optional, named_required
-
-
-def _build_example(command: str, params: dict[str, Any]) -> str:
-    pos_names, named_optional, named_required = _infer_params(params)
-    if not pos_names and not named_required and not named_optional:
+def _build_example(command: str, api: dict[str, Any]) -> str:
+    specs = infer_tool_params(api)
+    if not specs:
         return f"/api {command}"
-    if pos_names:
-        example_args = " ".join([f"<{n}>" for n in pos_names])
-        base = f"/api {command} {example_args}".strip()
-    else:
-        base = f"/api {command}"
-    named_parts = [f"{k}=<值>" for k in named_required + named_optional]
-    if named_parts:
-        return f"{base} 或 {base} {' '.join(named_parts)}"
-    return base
+    named_parts = [f"{s.name}=<值>" for s in specs]
+    return f"/api {command} {' '.join(named_parts)}"

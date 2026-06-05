@@ -7,7 +7,6 @@ from typing import Any
 
 import httpx
 
-from .parse_args import resolve_placeholders
 from .auth import apply_auth
 from .log_helper import logger
 

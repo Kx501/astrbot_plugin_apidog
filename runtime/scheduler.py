@@ -25,10 +25,8 @@ _JOB_ID_PREFIX = "apidog_schedule_"
 SendMessageFn = Callable[[str, CallResult], Awaitable[None]]
 
 
-def _build_raw_args(api_key: str, args: list[Any], named: dict[str, Any]) -> str:
+def _build_raw_args(api_key: str, named: dict[str, Any]) -> str:
     parts = [api_key]
-    for a in args:
-        parts.append(str(a))
     for k, v in named.items():
         v_str = str(v)
         if " " in v_str or '"' in v_str:
@@ -44,7 +42,7 @@ async def _run_scheduled(
     send_message: SendMessageFn | None,
 ) -> None:
     ctx = CallContext(user_id="scheduler", group_id=None)
-    result = await run(data_dir, raw_args, ctx, None)
+    result = await run(data_dir, raw_args, ctx)
     if not result.success:
         logger.warning("Scheduled call failed: %s", result.message)
     if target_session and send_message:
@@ -79,9 +77,8 @@ def _register_jobs(
         if not api_key or not cron:
             logger.warning("Schedule item %s missing api_key or cron, skip", i)
             continue
-        args = item.get("args") if isinstance(item.get("args"), list) else []
         named = item.get("named") if isinstance(item.get("named"), dict) else {}
-        raw_args = _build_raw_args(api_key, args or [], named or {})
+        raw_args = _build_raw_args(api_key, named or {})
         target_session = item.get("target_session")
         if isinstance(target_session, str):
             target_session = target_session.strip() or None

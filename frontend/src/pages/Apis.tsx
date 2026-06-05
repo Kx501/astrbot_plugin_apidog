@@ -23,9 +23,25 @@ function safeJsonParse(str: string): unknown {
   }
 }
 
-function toolParamsDescListFromUnknown(val: unknown): string[] {
-  if (Array.isArray(val)) return val.map((x) => (typeof x === "string" ? x : String(x ?? "")));
+type ToolParamDescRow = { key: string; desc: string };
+
+function toolParamsDescRowsFromUnknown(val: unknown): ToolParamDescRow[] {
+  if (val && typeof val === "object" && !Array.isArray(val)) {
+    return Object.entries(val as Record<string, unknown>).map(([key, v]) => ({
+      key,
+      desc: typeof v === "string" ? v : String(v ?? ""),
+    }));
+  }
   return [];
+}
+
+function rowsToToolParamsDesc(rows: ToolParamDescRow[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const row of rows) {
+    const k = row.key.trim();
+    if (k) out[k] = row.desc;
+  }
+  return out;
 }
 
 export default function Apis() {
@@ -35,7 +51,7 @@ export default function Apis() {
   const [saving, setSaving] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editRow, setEditRow] = useState<Record<string, unknown>>({});
-  const [toolParamDescs, setToolParamDescs] = useState<string[]>([]);
+  const [toolParamDescs, setToolParamDescs] = useState<ToolParamDescRow[]>([]);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [openBasic, setOpenBasic] = useState(true);
   const [openRequest, setOpenRequest] = useState(true);
@@ -91,7 +107,7 @@ export default function Apis() {
     setEditIndex(index);
     const row = { ...list[index] };
     setEditRow(row);
-    setToolParamDescs(toolParamsDescListFromUnknown((row as Record<string, unknown>).tool_params_desc));
+    setToolParamDescs(toolParamsDescRowsFromUnknown((row as Record<string, unknown>).tool_params_desc));
     setJsonError(null);
     setRawHeaders(null);
     setRawParams(null);
@@ -164,7 +180,7 @@ export default function Apis() {
       response_media_from: "url",
       description: "",
       help_text: "",
-      tool_params_desc: [] as string[],
+      tool_params_desc: {} as Record<string, string>,
       auth: undefined as string | undefined,
       allowed_user_groups: [] as string[],
       allowed_group_groups: [] as string[],
@@ -219,7 +235,7 @@ export default function Apis() {
   const retryMax: number | "" =
     retryCfg === false || retryCfg === 0 ? 0 : (retryObj.max_attempts ?? "");
   const retryBackoff = retryObj.backoff_seconds ?? "";
-  // tool_params_desc is stored in editRow as string[] (args index).
+  // tool_params_desc is stored in editRow as Record<string, string> (key matches {{key}}).
 
   const closeEdit = () => {
     setEditIndex(null);
@@ -301,7 +317,7 @@ export default function Apis() {
               <div className="form-group">
                 <label>工具参数说明 <span className="field-origin">(tool_params_desc)</span></label>
                 <p className="muted">
-                  用于多参数工具：按顺序对应 arg0/arg1/…（也就是 {"{{"}args.0{"}}"} / {"{{"}args.1{"}}"} …）。
+                  键名与配置中的占位符一致（如 {"{{"}city{"}}"} 对应键 city），写入 LLM 工具 docstring。
                 </p>
                 <div className="kv-list">
                   {toolParamDescs.length === 0 && (
@@ -309,10 +325,23 @@ export default function Apis() {
                       还没有参数说明，可点击“添加一行”。
                     </p>
                   )}
-                  {toolParamDescs.map((v, idx) => (
+                  {toolParamDescs.map((row, idx) => (
                     <div key={idx} className="kv-row">
                       <div className="kv-head">
-                        <div className="kv-index">arg{idx}</div>
+                        <input
+                          className="kv-index"
+                          value={row.key}
+                          placeholder="参数键，如 city"
+                          onChange={(e) => {
+                            const next = [...toolParamDescs];
+                            next[idx] = { ...next[idx], key: e.target.value };
+                            setToolParamDescs(next);
+                            setEditRow({
+                              ...editRow,
+                              tool_params_desc: rowsToToolParamsDesc(next),
+                            });
+                          }}
+                        />
                         <button
                           type="button"
                           className="kv-del"
@@ -321,7 +350,7 @@ export default function Apis() {
                             setToolParamDescs(next);
                             setEditRow({
                               ...editRow,
-                              tool_params_desc: next,
+                              tool_params_desc: rowsToToolParamsDesc(next),
                             });
                           }}
                         >
@@ -330,15 +359,15 @@ export default function Apis() {
                       </div>
                       <input
                         className="input-wide kv-input"
-                        value={v}
-                        placeholder={`arg${idx} 说明，如 城市名`}
+                        value={row.desc}
+                        placeholder="参数说明，如 城市名"
                         onChange={(e) => {
                           const next = [...toolParamDescs];
-                          next[idx] = e.target.value;
+                          next[idx] = { ...next[idx], desc: e.target.value };
                           setToolParamDescs(next);
                           setEditRow({
                             ...editRow,
-                            tool_params_desc: next,
+                            tool_params_desc: rowsToToolParamsDesc(next),
                           });
                         }}
                       />
@@ -349,12 +378,8 @@ export default function Apis() {
                       type="button"
                       className="kv-add"
                       onClick={() => {
-                        const next = [...toolParamDescs, ""];
+                        const next = [...toolParamDescs, { key: "", desc: "" }];
                         setToolParamDescs(next);
-                        setEditRow({
-                          ...editRow,
-                          tool_params_desc: next,
-                        });
                       }}
                     >
                       添加一行

@@ -1,6 +1,6 @@
 # ApiDog（类ApiFox AstrBot 插件）
 
-可配置 API 与指令绑定，通过单指令 `/api <接口名> [参数...]` 调用配置的 HTTP 接口。
+可配置 API 与指令绑定，通过单指令 `/api <接口名> [键=值 ...]` 调用配置的 HTTP 接口。
 
 ## 安装
 
@@ -14,39 +14,38 @@
 
 ## 用法
 
-- `/api <接口名> [参数...]`：如 `/api 天气 北京`、`/api 翻译 "hello world" zh`
+- `/api <接口名> [键=值 ...]`：如 `/api 天气 city=北京`、`/api 随机图 category=acg`
 - `/api help`：列出已配置接口
 - `/api help <接口名>`：查看该接口详细帮助
-- 支持引号包裹含空格参数、`key=value` 命名参数
-- **独立指令**：接口中开启 `as_cmd` 后，会为该接口生成独立指令（如 `/天气 北京`），保存配置后自动重载插件生效
+- 支持引号包裹含空格的参数值，如 `text="hello world"`
+- **独立指令**：接口中开启 `as_cmd` 后，会为该接口生成独立指令（如 `/天气 city=北京`），保存配置后自动重载插件生效
 - **LLM 工具**：接口中开启 `as_tool` 后，会按 AstrBot 推荐的 `@filter.llm_tool` 方式注册为函数工具，供对话中的 LLM 调用；保存配置后自动重载插件生效
 
 ## LLM 工具（`as_tool`）
 
 - 注册方式：根据 `apis.json` 在插件 `main.py` 中生成 `@filter.llm_tool` 方法（符合 [AstrBot 文档](https://docs.astrbot.app/dev/star/guides/ai.html#%E5%AE%9A%E4%B9%89-tool) 的装饰器写法）。
-- **参数占位符**：生成工具时仅识别 `{{args.0}}`、`{{args.1}}` …（在 **url / headers / params / body** 任意位置扫描）。无此类占位符则生成**无参工具**。
-- **参数说明**：`tool_params_desc` 为字符串数组，按顺序对应 `arg0`、`arg1` …，写入工具 docstring 的 `Args:` 段，供模型理解各参数含义。可在配置页「工具参数说明」中编辑。
-- **与指令的区别**：`/api` 与独立指令仍支持 `{{named.xxx}}` 命名参数；LLM 工具侧请统一用 `{{args.N}}` 表达可变参数，避免模型参数 schema 与占位符不一致。
+- **参数占位符**：从 **url / headers / params / body** 扫描 `{{键名}}`、`{{键名|默认值}}`，生成同名的工具参数字段；调用时拼成 `键=值` 交给核心逻辑。无占位符则生成**无参工具**。
+- **参数说明**：`tool_params_desc` 为对象，键与占位符名一致，如 `{"city": "城市名"}`，写入工具 docstring 的 `Args:` 段。可在配置页「工具参数说明」中编辑。
+- **与指令一致**：指令、`/api`、独立指令、LLM 工具均使用同一套占位符与 `键=值` 输入规则。
 
 ## API 配置要点
 
 - **基础**：`id` / `command`、`method`、`url`、`headers`、`params`、`body`
-- **占位符**（可在 **url、headers、params、body** 中使用，包括链接路径和查询串）：
-  - `{{args.0}}`、`{{args.1}}` … 位置参数（用户输入第 1、2… 个词）
-  - `{{named.键名}}`、`{{named.键名|默认值}}` 命名参数（如用户输入 `model=flux` 则 `{{named.model}}` 为 flux）
-  - `{{config.键名}}` 来自 auth/全局配置的值  
-  占位符格式固定为上述三种前缀（`args.` / `named.` / `config.`），键名或索引按需填写。
+- **占位符**（可在 **url、headers、params、body** 中使用）：
+  - `{{键名}}`：必填，用户输入 `键名=值` 时替换
+  - `{{键名|默认值}}`：可选，用户不传该键时使用默认值  
+  示例：`"params": {"city": "{{city}}", "category": "{{category|acg}}"}` → 用户输入 `city=北京` 或 `category=风景`。认证密钥请用接口字段 **auth**，不要写进占位符。
 - **响应**：`response_type`（text / image / video / audio）、`response_path`（JSON 取结果路径）、`response_media_from`（url 或 body，body 表示接口直接返回二进制媒体）
 - **认证**：`auth` 或 `auth_ref`（填 auth.json 中某条认证的键名，如 `default`）
 - **权限**：`allowed_user_groups`、`allowed_group_groups`（组在 groups.json 中定义）
-- **说明**：`description`（列表用）、`help_text` / `help`（详情页自定义）、`tool_params_desc`（LLM 工具且存在 `{{args.N}}` 时，按索引填写各参数说明，如 `["城市名", "语言"]`）
+- **说明**：`description`（列表用）、`help_text` / `help`（详情页自定义）、`tool_params_desc`（LLM 工具时按占位符键名填写说明，如 `{"city": "城市名"}`）
 - **开关**：`enabled`（默认 true）、`as_cmd`（独立指令，默认 false）、`as_tool`（LLM 工具，默认 false）
 - **限流**：`rate_limit`（按 user_id+api_key）、`rate_limit_global`（按 api_key 全局），格式 `{"max": N, "window_seconds": S}`
 - **超时与重试**：`timeout_seconds`、`retry`（false/0 或不配则用 config 默认；对象 `{ "max_attempts": N, "backoff_seconds": S }`）
 
 ## 计划任务
 
-将 `sample_schedules.json` 复制为数据目录下 `schedules.json`。每项含 **api_key**（填 API 的 **id**）、**cron**（5 位 cron，如 `0 9 * * *`）、可选 **args** / **named**、**enabled**（默认 true，为 false 时该条不执行）。可配置 **target_session** 主动推送结果（AstrBot 下为 `unified_msg_origin`）。计划任务以 `user_id="scheduler"` 执行，需在 groups.json 的 user_groups 中建 system 组并加入 `scheduler`，API 的 `allowed_user_groups` 含 `"system"` 或不限制用户组。
+将 `sample_schedules.json` 复制为数据目录下 `schedules.json`。每项含 **api_key**（填 API 的 **id**）、**cron**（5 位 cron，如 `0 9 * * *`）、可选 **named**（`键=值` 对象，如 `{"city": "北京"}`）、**enabled**（默认 true，为 false 时该条不执行）。可配置 **target_session** 主动推送结果（AstrBot 下为 `unified_msg_origin`）。计划任务以 `user_id="scheduler"` 执行，需在 groups.json 的 user_groups 中建 system 组并加入 `scheduler`，API 的 `allowed_user_groups` 含 `"system"` 或不限制用户组。
 
 ## 认证 (auth.json)
 
@@ -78,7 +77,7 @@
 
 ## 迁移到其他平台
 
-`core/` 无 bot 依赖。迁移时保留 `core/` 及数据目录结构，在新入口中：从平台事件解析用户输入与 user_id/group_id/is_admin，构造 `CallContext`，调用 `core.run(data_dir, raw_args, context, extra_config)`，再根据返回的 `CallResult` 调用该平台的发消息 API。
+`core/` 无 bot 依赖。迁移时保留 `core/` 及数据目录结构，在新入口中：从平台事件解析用户输入与 user_id/group_id/is_admin，构造 `CallContext`，调用 `core.run(data_dir, raw_args, context)`，再根据返回的 `CallResult` 调用该平台的发消息 API。
 
 ## 开发部署指南
 见 [DEVELOPMENT.md](/DEVELOPMENT.md)

@@ -4,7 +4,7 @@
       "api_key": "weather",
       "enabled": true,
       "cron": "0 9 * * *",
-      "args": ["北京"],
+      "named": {"city": "北京"},
       "target_session": ""
     }
   ]

@@ -4,6 +4,8 @@
 import re
 from typing import Any
 
+from .placeholders import PLACEHOLDER_RE
+
 
 def parse_args(raw: str) -> tuple[list[str], dict[str, str]]:
     """
@@ -49,7 +51,6 @@ def _tokenize(s: str) -> list[str]:
         if s[i] in "\"'":
             q = s[i]
             i += 1
-            start = i
             parts = []
             while i < n:
                 if s[i] == "\\" and i + 1 < n and s[i + 1] in "\"'":
@@ -83,49 +84,23 @@ def _strip_quotes(s: str) -> str:
     return s
 
 
-def resolve_placeholders(
-    value: Any,
-    args: list[str],
-    named: dict[str, str],
-    config: dict[str, Any],
-) -> Any:
-    """Recursively replace {{args.i}}, {{named.key}}, {{named.key|default}}, {{config.key}} in strings/dicts/lists."""
+def resolve_placeholders(value: Any, named: dict[str, str]) -> Any:
+    """Recursively replace {{key}}, {{key|default}} in strings/dicts/lists."""
     if isinstance(value, str):
-        return _replace_placeholders_str(value, args, named, config)
+        return _replace_placeholders_str(value, named)
     if isinstance(value, dict):
-        return {k: resolve_placeholders(v, args, named, config) for k, v in value.items()}
+        return {k: resolve_placeholders(v, named) for k, v in value.items()}
     if isinstance(value, list):
-        return [resolve_placeholders(v, args, named, config) for v in value]
+        return [resolve_placeholders(v, named) for v in value]
     return value
 
 
-_PLACEHOLDER = re.compile(
-    r"\{\{(?:args\.(\d+)|named\.([^}|]+)(?:\|([^}]*))?|config\.([^}]+))\}\}"
-)
-
-
-def _replace_placeholders_str(
-    s: str,
-    args: list[str],
-    named: dict[str, str],
-    config: dict[str, Any],
-) -> str:
+def _replace_placeholders_str(s: str, named: dict[str, str]) -> str:
     def repl(m: re.Match) -> str:
-        if m.group(1) is not None:
-            idx = int(m.group(1))
-            return args[idx] if idx < len(args) else ""
-        if m.group(2) is not None:
-            key = m.group(2).strip()
-            default = m.group(3)
-            if default is not None:
-                default = default.strip()
-            return named.get(key, default if default is not None else "")
-        if m.group(4) is not None:
-            key = m.group(4).strip()
-            v = config
-            for part in key.split("."):
-                v = v.get(part, "") if isinstance(v, dict) else ""
-            return str(v) if v != "" else ""
-        return m.group(0)
+        key = m.group(1).strip()
+        default = m.group(2)
+        if default is not None:
+            default = default.strip()
+        return named.get(key, default if default is not None else "")
 
-    return _PLACEHOLDER.sub(repl, s)
+    return PLACEHOLDER_RE.sub(repl, s)

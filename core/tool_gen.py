@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .log_helper import logger
+from .placeholders import ParamSpec, infer_tool_params
 from .types import CallContext
 
 try:
@@ -22,7 +23,6 @@ except ImportError:
 
 _LLM_BEGIN_MARKER = "# --- BEGIN GENERATED LLM TOOLS ---"
 _LLM_END_MARKER = "# --- END GENERATED LLM TOOLS ---"
-_PLACEHOLDER_ARGS = re.compile(r"\{\{args\.(\d+)\}\}")
 
 
 def apis_for_llm_tools(apis: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -40,76 +40,25 @@ def _llm_safe_method_name(index: int) -> str:
 def _llm_one_line(s: str) -> str:
     return " ".join((s or "").split())
 
-def _max_args_index(value: Any) -> int | None:
-    """Scan nested value (str/dict/list) for {{args.N}} and return max N, or None if absent."""
-    found: int | None = None
-    if isinstance(value, str):
-        for m in _PLACEHOLDER_ARGS.finditer(value):
-            try:
-                idx = int(m.group(1))
-            except Exception:
-                continue
-            found = idx if found is None else max(found, idx)
-        return found
-    if isinstance(value, dict):
-        for k, v in value.items():
-            found_k = _max_args_index(k)
-            found_v = _max_args_index(v)
-            for x in (found_k, found_v):
-                if x is None:
-                    continue
-                found = x if found is None else max(found, x)
-        return found
-    if isinstance(value, list):
-        for v in value:
-            x = _max_args_index(v)
-            if x is None:
-                continue
-            found = x if found is None else max(found, x)
-        return found
-    return None
 
-
-def _infer_llm_positional_count(api: dict[str, Any]) -> int:
-    """
-    Only supports {{args.N}} across url/headers/params/body.
-    Returns how many positional args should be generated.
-    """
-    max_idx: int | None = None
-    for field in ("url", "headers", "params", "body"):
-        x = _max_args_index(api.get(field))
-        if x is None:
-            continue
-        max_idx = x if max_idx is None else max(max_idx, x)
-    return 0 if max_idx is None else (max_idx + 1)
-
-
-def _py_ident(s: str) -> str:
-    """Best-effort sanitize to a valid Python identifier (for generated method params)."""
-    s = (s or "").strip()
-    s = re.sub(r"\W", "_", s)
+def _py_param_name(name: str) -> str:
+    name = (name or "").strip()
+    if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
+        return name
+    s = re.sub(r"\W", "_", name)
     if not s or s[0].isdigit():
         s = f"p_{s}"
     return s
 
 
-def _tool_params_desc_list(api: dict[str, Any], count: int) -> list[str]:
-    """
-    Read per-parameter descriptions for LLM tools.
-
-    Supported forms in api:
-    - tool_params_desc: ["城市名", "语言"]  (matched by args index)
-    """
+def _tool_params_desc_map(api: dict[str, Any], specs: list[ParamSpec]) -> dict[str, str]:
     raw = api.get("tool_params_desc")
-    out = [""] * max(0, int(count))
-    if not isinstance(raw, list):
-        return out
-    for i in range(min(len(raw), len(out))):
-        v = raw[i]
-        if isinstance(v, str):
-            out[i] = v.strip()
-        else:
-            out[i] = str(v).strip() if v is not None else ""
+    out: dict[str, str] = {}
+    if not isinstance(raw, dict):
+        return {s.name: "" for s in specs}
+    for spec in specs:
+        v = raw.get(spec.name)
+        out[spec.name] = str(v).strip() if v is not None else ""
     return out
 
 
@@ -126,19 +75,20 @@ def _build_llm_tool_methods(apis: list[dict[str, Any]]) -> str:
         )
         name_literal = json.dumps(api_key, ensure_ascii=False)
         method = _llm_safe_method_name(i)
-        argc = _infer_llm_positional_count(api)
-        if argc > 0:
-            desc_list = _tool_params_desc_list(api, argc)
+        specs = infer_tool_params(api)
+        if specs:
+            desc_map = _tool_params_desc_map(api, specs)
             sig_params: list[str] = []
-            doc_params: list[tuple[str, str]] = []  # (ident, desc)
+            doc_params: list[tuple[str, str, str]] = []  # (orig_key, ident, desc)
             raw_parts: list[str] = []
 
-            for idx in range(argc):
-                ident = f"arg{idx}"
+            for spec in specs:
+                ident = _py_param_name(spec.name)
                 sig_params.append(f"{ident}: str = ''")
-                d = desc_list[idx] or f"参数{idx}"
-                doc_params.append((ident, d))
-                raw_parts.append(f"({ident}.strip())")
+                d = desc_map.get(spec.name) or spec.name
+                doc_params.append((spec.name, ident, d))
+                key_lit = json.dumps(spec.name, ensure_ascii=False)
+                raw_parts.append(f"({ident}.strip() and f\"{spec.name}={{{ident}.strip()}}\")")
 
             sig = ", ".join(sig_params)
             lines.append(f"    @filter.llm_tool(name={name_literal})")
@@ -147,7 +97,7 @@ def _build_llm_tool_methods(apis: list[dict[str, Any]]) -> str:
             lines.append(f"        {desc}")
             lines.append("")
             lines.append("        Args:")
-            for ident, d in doc_params:
+            for orig_key, ident, d in doc_params:
                 lines.append(f"            {ident}(string): {d}")
             lines.append('        """')
             lines.append(f"        raw = ' '.join([x for x in [{', '.join(raw_parts)}] if x])")
@@ -265,17 +215,8 @@ async def execute_apidog_llm_tool(
                 pass
     except Exception:
         pass
-    extra_config: dict[str, Any] | None = None
-    try:
-        ctx = star.context
-        if ctx is not None and hasattr(ctx, "cfg_get"):
-            cfg = ctx.cfg_get("apidog")
-            if isinstance(cfg, dict):
-                extra_config = cfg
-    except Exception:
-        pass
     call_ctx = CallContext(user_id=user_id, group_id=group_id)
-    result = await run(data_dir, raw_args, call_ctx, extra_config)
+    result = await run(data_dir, raw_args, call_ctx)
     if not result.success:
         return result.message or "调用失败"
     if result.result_type == "text":

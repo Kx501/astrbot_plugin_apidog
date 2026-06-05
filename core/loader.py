@@ -237,16 +237,3 @@ def find_api_by_id_or_command(apis: list[dict], key_or_command: str) -> dict | N
             return api
     return None
 
-
-def get_config_for_placeholders(
-    auth: dict[str, Any],
-    extra_config: dict[str, Any] | None,
-) -> dict[str, Any]:
-    out: dict[str, Any] = dict(extra_config or ())
-    for name, auth_entry in auth.items():
-        if isinstance(auth_entry, dict):
-            if "value" in auth_entry:
-                out[name] = auth_entry.get("value")
-            elif "token" in auth_entry:
-                out[name] = auth_entry.get("token")
-    return out

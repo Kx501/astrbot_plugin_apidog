@@ -58,7 +58,7 @@ export default function Schedules() {
     setConfirmDeleteIndex(null);
   };
   const add = () =>
-    setList([...list, { api_key: "", cron: "0 9 * * *", args: [], named: {}, target_session: "", enabled: true }]);
+    setList([...list, { api_key: "", cron: "0 9 * * *", named: {}, target_session: "", enabled: true }]);
 
   if (loading) return <p>加载中…</p>;
   return (

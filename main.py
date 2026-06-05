@@ -152,10 +152,9 @@ class ApiDogStar(Star):
         event: AstrMessageEvent,
         raw_args: str,
         ctx: CallContext,
-        extra_config: dict[str, Any] | None,
     ):
         """Run API with raw_args and yield message results to event. Shared by /api and generated commands."""
-        result = await run(self._data_dir, raw_args, ctx, extra_config)
+        result = await run(self._data_dir, raw_args, ctx)
         if not result.success:
             yield event.plain_result(result.message)
             return
@@ -207,14 +206,14 @@ class ApiDogStar(Star):
 
     @filter.command("api")
     async def cmd_api(self, event: AstrMessageEvent) -> None:
-        """通过接口名调用配置的 API。用法: /api <接口名> [参数...]，例如 /api 天气 北京"""
+        """通过接口名调用配置的 API。用法: /api <接口名> [键=值 ...]，例如 /api 天气 city=北京"""
         raw = event.message_str.strip()
         for prefix in ("/api ", "/api\t", "api ", "api\t"):
             if raw.startswith(prefix):
                 raw = raw[len(prefix):].strip()
                 break
         if not raw:
-            yield event.plain_result("用法: /api <接口名> [参数...]，例如 /api 天气 北京")
+            yield event.plain_result("用法: /api <接口名> [键=值 ...]，例如 /api 天气 city=北京")
             return
         try:
             user_id = str(event.get_sender_id())
@@ -226,14 +225,7 @@ class ApiDogStar(Star):
         except Exception:
             group_id = None
         ctx = CallContext(user_id=user_id, group_id=group_id)
-        extra_config = None
-        try:
-            cfg = self.context.cfg_get("apidog")
-            if isinstance(cfg, dict):
-                extra_config = cfg
-        except Exception:
-            pass
-        async for x in self._run_and_send(event, raw, ctx, extra_config):
+        async for x in self._run_and_send(event, raw, ctx):
             yield x
 
     # --- BEGIN GENERATED COMMANDS ---

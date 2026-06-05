@@ -48,7 +48,6 @@ async def run(
     data_dir: Path,
     raw_args: str,
     context: CallContext,
-    extra_config: dict[str, Any] | None = None,
 ) -> CallResult:
     """
     Load config, resolve API by first token in raw_args, check permission,
@@ -74,6 +73,14 @@ async def run(
         _log_call(api_key, context, True)
         return CallResult(success=True, message=message, result_type="text")
 
+    if rest_args:
+        _log_call(api_key, context, False)
+        return CallResult(
+            success=False,
+            message="请使用 键=值 格式传参，例如 city=北京。",
+            result_type="text",
+        )
+
     api = loader.find_api_by_id_or_command(apis, api_key)
     if not api:
         _log_call(api_key, context, False)
@@ -98,7 +105,6 @@ async def run(
         _log_call(api_key, context, False, error_type="rate_limit")
         return CallResult(success=False, message=err, result_type="text")
 
-    config = loader.get_config_for_placeholders(auth, extra_config)
     url = api.get("url") or ""
     if not url:
         _log_call(api_key, context, False)
@@ -109,13 +115,13 @@ async def run(
     params = dict(api.get("params") or {})
     body_raw = api.get("body")
 
-    headers = resolve_placeholders(headers, rest_args, named, config)
-    params = resolve_placeholders(params, rest_args, named, config)
-    url = resolve_placeholders(url, rest_args, named, config)
+    headers = resolve_placeholders(headers, named)
+    params = resolve_placeholders(params, named)
+    url = resolve_placeholders(url, named)
     if isinstance(body_raw, (dict, list)):
-        body = resolve_placeholders(body_raw, rest_args, named, config)
+        body = resolve_placeholders(body_raw, named)
     elif isinstance(body_raw, str):
-        body = resolve_placeholders(body_raw, rest_args, named, config)
+        body = resolve_placeholders(body_raw, named)
     else:
         body = body_raw
 
